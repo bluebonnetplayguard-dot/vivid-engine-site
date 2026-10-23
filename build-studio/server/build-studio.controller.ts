@@ -20,12 +20,15 @@ export class BuildStudioService {
   constructor(@Optional() @Inject(CREDIT_LEDGER) private readonly credits?: CreditLedger) {}
 
   async turn(userId: string, message: string, spec?: Record<string, unknown> | null, history?: BuildTurnHistory): Promise<BuildResult> {
-    if (!message?.trim()) throw new HttpException('Describe what you want to build.', HttpStatus.BAD_REQUEST);
-    if (message.length > 4000) throw new HttpException('That message is too long.', HttpStatus.BAD_REQUEST);
-    if (this.credits && !(await this.credits.hasCredits(userId, AI_STEP))) {
-      throw new HttpException({ error: 'You’re out of Build Studio credits.', code: 'QUOTA_DAY' }, HttpStatus.PAYMENT_REQUIRED);
-    }
-    const result = await buildTurn({ message, currentSpec: spec, history });
+    if (!message?.trim()) throw new HttpException({ error: 'Describe what you want to build.' }, HttpStatus.BAD_REQUEST);
+    if (message.length > 4000) throw new HttpException({ error: 'That message is too long.' }, HttpStatus.BAD_REQUEST);
+    // Free quick-parser turns never need credits; only the AI planner step checks them.
+    const beforePlanner = async () => {
+      if (this.credits && !(await this.credits.hasCredits(userId, AI_STEP))) {
+        throw new HttpException({ error: 'You’re out of Build Studio credits.', code: 'QUOTA_DAY' }, HttpStatus.PAYMENT_REQUIRED);
+      }
+    };
+    const result = await buildTurn({ message, currentSpec: spec, history, beforePlanner });
     if (result.usedPlanner && this.credits) await this.credits.charge(userId, AI_STEP, 1, { chars: message.length });
     return result;
   }
@@ -44,8 +47,10 @@ export class BuildStudioController {
 
   @Post('sheet')
   async sheet(@Body() body: { spec: Record<string, unknown>; scale?: string; paper?: string }, @Res() res: any) {
-    if (!body?.spec) throw new HttpException('Missing spec', HttpStatus.BAD_REQUEST);
-    const pdf = Buffer.from(await sheetPdf(body.spec, body.scale, body.paper));
+    if (!body?.spec) throw new HttpException({ error: 'Missing spec' }, HttpStatus.BAD_REQUEST);
+    let pdf: Buffer;
+    try { pdf = Buffer.from(await sheetPdf(body.spec, body.scale, body.paper)); }
+    catch (e: any) { throw new HttpException({ error: e?.message || 'Couldn’t make the drawing.' }, HttpStatus.UNPROCESSABLE_ENTITY); }
     res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="build-studio-sheet.pdf"', 'Cache-Control': 'no-store' });
     res.send(pdf);
   }

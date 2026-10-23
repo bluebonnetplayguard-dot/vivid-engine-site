@@ -9,7 +9,9 @@ import copy
 import json
 from pathlib import Path
 
-EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
+_HERE = Path(__file__).resolve()
+EXAMPLES = next((p / "examples" for p in (_HERE.parent, *_HERE.parents) if (p / "examples" / "deck.json").exists()),
+                _HERE.parents[2] / "examples")   # finds examples/ wherever the image copies it
 
 DECK_DEFAULTS = {
     "width": "12ft",           # along the house

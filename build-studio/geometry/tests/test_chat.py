@@ -47,3 +47,19 @@ class ChatTurn(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ReviewRegressions(unittest.TestCase):
+    def test_follow_up_keeps_unmentioned_sizes(self):
+        a = handle_build("12x16 deck 30 inches high joists 12 in o.c.")
+        b = handle_build(template="deck", params={"width": "14ft"}, previous_spec=a["spec"])
+        self.assertEqual(b["spec"]["parameters"]["joist_spacing"], "12in")
+        self.assertEqual(b["spec"]["parameters"]["deck_height"], "30in")
+
+    def test_quick_parser_wording(self):
+        from vbs.quickparse import parse
+        self.assertEqual(parse("build a deck 12x16 in my backyard")[1]["width"], "12ft")
+        self.assertEqual(parse("deck with 2x10 joists, 12 by 16")[1]["depth"], "16ft")
+        self.assertEqual(parse("12x16 deck 2ft 6in high")[1]["height"], "2ft6in")
+        self.assertIsNone(parse("I want a deck"))
+        self.assertIsNone(parse("12x16 deck with stairs"))
