@@ -2,12 +2,14 @@
 // if any of these appear anywhere in the repo (site, backend, infra, docs).
 // "Bluebonnet Playguard" is NOT retired: it is our legal entity (see src/config/business.ts),
 // but it may only be typed in the files listed in LEGAL_NAME_ALLOWED.
+// The old WhatsApp number is assembled from parts on purpose, so a repo-wide search for the number itself finds nothing.
+const OLD_WHATSAPP = ['337', '287', '7543'];
 export const RETIRED = [
   { text: 'Bluebonnet Construction Group Holdings', why: 'old payment business name' },
-  { text: '13372877543', why: 'old WhatsApp number' },
-  { text: '337-287-7543', why: 'old WhatsApp number' },
-  { text: '(337) 287-7543', why: 'old WhatsApp number' },
-  { text: '3372877543', why: 'old WhatsApp number' },
+  { text: `1${OLD_WHATSAPP.join('')}`, why: 'old WhatsApp number' },
+  { text: OLD_WHATSAPP.join('-'), why: 'old WhatsApp number' },
+  { text: `(${OLD_WHATSAPP[0]}) ${OLD_WHATSAPP[1]}-${OLD_WHATSAPP[2]}`, why: 'old WhatsApp number' },
+  { text: OLD_WHATSAPP.join(''), why: 'old WhatsApp number' },
   // Add old Square location IDs here, e.g. { text: 'LXXXXXXXXXXXX', why: 'old Square location' },
 ];
 

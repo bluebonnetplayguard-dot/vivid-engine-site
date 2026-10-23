@@ -1,10 +1,12 @@
--- Square replaces Square. Existing rows keep provider = 'square' so history stays readable; new plans are 'square'.
-ALTER TABLE ai_subscriptions ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'square';
+-- Square is the only payment provider. Rows written before Square get provider = 'legacy' (the column default below),
+-- so history stays readable; every new plan and payment is 'square'. Columns used by the earlier provider are no longer created here;
+-- databases that already have them keep them unused (nothing is dropped, so rolling back the app image stays safe).
+ALTER TABLE ai_subscriptions ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'legacy';
 ALTER TABLE ai_subscriptions ADD COLUMN IF NOT EXISTS square_customer_id text;
 ALTER TABLE ai_subscriptions ADD COLUMN IF NOT EXISTS square_subscription_id text UNIQUE;
 ALTER TABLE ai_subscriptions ADD COLUMN IF NOT EXISTS card_id text;
 ALTER TABLE ai_subscriptions ADD COLUMN IF NOT EXISTS canceled_date timestamptz;
-ALTER TABLE video_subscriptions ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'square';
+ALTER TABLE video_subscriptions ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'legacy';
 ALTER TABLE video_subscriptions ADD COLUMN IF NOT EXISTS square_customer_id text;
 ALTER TABLE video_subscriptions ADD COLUMN IF NOT EXISTS square_subscription_id text UNIQUE;
 ALTER TABLE video_subscriptions ADD COLUMN IF NOT EXISTS card_id text;

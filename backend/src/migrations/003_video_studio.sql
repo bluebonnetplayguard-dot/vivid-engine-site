@@ -9,8 +9,6 @@ CREATE TABLE IF NOT EXISTS video_subscriptions (
   status                  text NOT NULL DEFAULT 'active',
   seats                   int  NOT NULL DEFAULT 1 CHECK (seats >= 1 AND seats <= 500),
   company_name            text,
-  stripe_customer_id      text,
-  stripe_subscription_id  text UNIQUE,
   current_period_end      timestamptz,
   created_date            timestamptz NOT NULL DEFAULT now(),
   updated_date            timestamptz NOT NULL DEFAULT now()
