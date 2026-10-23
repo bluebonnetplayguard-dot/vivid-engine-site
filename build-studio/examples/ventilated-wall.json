@@ -1,0 +1,128 @@
+{
+  "specVersion": "1.0",
+  "project": {
+    "name": "Ventilated rainscreen wall",
+    "drawnBy": "Vivid Build Studio",
+    "revision": "A",
+    "description": "8 ft x 8 ft wall panel, outside to inside: fiber-cement cladding, battens and air gap, weather barrier, OSB sheathing, 2x4 studs with insulation, gypsum board.",
+    "display": {
+      "units": "ft-in",
+      "fraction": 16
+    }
+  },
+  "parameters": {
+    "wall_width": "8ft",
+    "wall_height": "8ft",
+    "stud_spacing": "16in",
+    "batten_spacing": "16in"
+  },
+  "materials": {
+    "fiber-cement": {
+      "name": "Fiber-cement panel",
+      "kind": "sheet",
+      "color": "#9aa3ad"
+    },
+    "batten": {
+      "name": "PT 1x3 batten",
+      "kind": "lumber",
+      "color": "#b8945a"
+    },
+    "wrb": {
+      "name": "Weather-resistive barrier",
+      "kind": "membrane",
+      "color": "#dfe8f0"
+    },
+    "osb": {
+      "name": "7/16 OSB sheathing",
+      "kind": "engineered-wood",
+      "color": "#d2b48c"
+    },
+    "spf": {
+      "name": "SPF 2x4 stud",
+      "kind": "lumber",
+      "color": "#e2c58f"
+    },
+    "mineral-wool": {
+      "name": "Mineral wool batt",
+      "kind": "insulation",
+      "color": "#e9d7a8"
+    },
+    "gypsum": {
+      "name": "1/2 gypsum board",
+      "kind": "sheet",
+      "color": "#f2f2f2"
+    }
+  },
+  "sections": {
+    "1x3": {
+      "nominal": "1x3",
+      "width": "2-1/2in",
+      "depth": "3/4in"
+    },
+    "2x4": {
+      "nominal": "2x4",
+      "width": "1-1/2in",
+      "depth": "3-1/2in"
+    }
+  },
+  "buildups": [
+    {
+      "id": "wall-1",
+      "name": "Rainscreen wall",
+      "origin": [
+        "0",
+        "0",
+        "0"
+      ],
+      "width": "wall_width",
+      "height": "wall_height",
+      "outsideFace": "-y",
+      "layers": [
+        {
+          "name": "Cladding",
+          "material": "fiber-cement",
+          "thickness": "5/16in",
+          "fill": "solid"
+        },
+        {
+          "name": "Battens and air gap",
+          "material": "batten",
+          "thickness": "3/4in",
+          "fill": "members",
+          "section": "1x3",
+          "spacing": "batten_spacing",
+          "orientation": "vertical"
+        },
+        {
+          "name": "Weather barrier",
+          "material": "wrb",
+          "thickness": "1/32in",
+          "fill": "solid"
+        },
+        {
+          "name": "Sheathing",
+          "material": "osb",
+          "thickness": "7/16in",
+          "fill": "solid"
+        },
+        {
+          "name": "Studs with insulation",
+          "material": "spf",
+          "thickness": "3-1/2in",
+          "fill": "members",
+          "section": "2x4",
+          "spacing": "stud_spacing",
+          "orientation": "vertical",
+          "infill": "mineral-wool"
+        },
+        {
+          "name": "Interior board",
+          "material": "gypsum",
+          "thickness": "1/2in",
+          "fill": "solid"
+        }
+      ]
+    }
+  ],
+  "elements": []
+}
