@@ -23,7 +23,8 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.set('trust proxy', 1); // Nginx or App Platform sits in front; req.ip is the visitor's address.
   // The site uses inline styles and third-party fonts/payment widgets, so no strict CSP here.
-  app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false, referrerPolicy: { policy: 'strict-origin-when-cross-origin' } }));
+  // Strict-Transport-Security and Referrer-Policy are set once, by Nginx (infra/nginx/templates), so they aren't duplicated here.
+  app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false, referrerPolicy: false, strictTransportSecurity: false }));
   app.use(cookieParser());
   // gzip responses (scripts, styles, HTML, JSON). Nginx passes already-compressed responses
   // through, and App Platform or direct access gets compression too. Streams (live updates

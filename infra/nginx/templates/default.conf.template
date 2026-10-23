@@ -69,9 +69,12 @@ server {
 
   add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
   add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-  add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+  add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header X-Frame-Options "SAMEORIGIN" always;
 
-  client_max_body_size 1m;
+  # Plan PDFs and video pieces are uploaded through the API; keep the API cap in the app (see main.ts).
+  client_max_body_size 25m;
   # Slow-request (Slowloris) protection: don't hold connections open for idle clients.
   client_body_timeout 15s;
   client_header_timeout 15s;
@@ -122,9 +125,17 @@ server {
     proxy_read_timeout 180s; # AI requests can take a while
   }
 
-  # Stripe calls this; it must not be rate limited by address (Stripe retries from many IPs).
-  location = /api/webhooks/stripe {
+  # Square calls this; it must not be rate limited by address (Square retries from many IPs).
+  location = /api/webhooks/square {
     proxy_pass http://app:8080;
+  }
+
+  # Built assets are content-hashed: cache for a year. index.html is never cached (the app sets no-cache).
+  location /assets/ {
+    proxy_pass http://app:8080;
+    proxy_hide_header Cache-Control;
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
   }
 
   location / {
