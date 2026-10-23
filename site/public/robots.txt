@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /portal
+Disallow: /admin
+Disallow: /settings
+Disallow: /start
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# Public marketing content is available to search and answer engines.
+Sitemap: https://vividenginesolutions.com/sitemap.xml

@@ -1,0 +1,4 @@
+import { ADD_ONS } from '@/config/pricing';
+export default function EngineAddons({ onSelect }) {
+  return <div className="engine-addons">{['Site & brand', 'Business tools', 'Growth & marketing'].map(group => <div className="engine-addon-group" key={group}><h4>{group}</h4><dl>{ADD_ONS.filter(item => item.group === group).map(item => <div key={item.id}><dt><button type="button" onClick={() => onSelect(item.name)}>{item.name}</button>{item.id === 'ai-chat' && <small>Included in Turnkey Care</small>}{item.id === 'ads' && <small>Plus ad spend</small>}{item.id === 'rush' && <small>Half the usual timeline</small>}</dt><dd>{item.display}</dd></div>)}</dl></div>)}</div>;
+}

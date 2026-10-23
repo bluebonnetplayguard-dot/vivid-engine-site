@@ -1,0 +1,149 @@
+<title>Build Studio Viewer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: full-bleed 3D canvas with a docked side panel (model, tools, selection). Single dark brand look by choice. */
+:root{--bg:#05080f;--panel:#0a1020;--panel2:#0f1830;--line:#1b2848;--fg:#eef3ff;--muted:#9aaccc;--neon:#1e9bff;--glow:#4cc6ff;--warn:#ffd27a;
+--display:"Montserrat",system-ui,sans-serif;--body:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark}
+*{box-sizing:border-box}html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;overflow:hidden}
+.app{display:flex;height:100%;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+#stage{flex:1;min-width:0;position:relative;touch-action:none}
+canvas{display:block}
+aside{width:300px;flex:none;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:auto}
+.hd{padding:16px 16px 10px;border-bottom:1px solid var(--line)}
+.hd h1{font:800 16px var(--display);margin:0;letter-spacing:.2px}
+.hd p{margin:4px 0 0;color:var(--muted);font-size:12.5px}
+.sec{padding:12px 16px;border-bottom:1px solid var(--line)}
+.sec h2{font:700 10.5px var(--display);letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.seg{display:flex;gap:2px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{flex:1;border:0;background:none;color:var(--muted);padding:6px 8px;border-radius:8px;font:600 12.5px var(--body);cursor:pointer}
+.seg button[aria-pressed="true"]{background:#16244a;color:#fff;box-shadow:inset 0 0 0 1px rgba(76,198,255,.45)}
+.row{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;color:var(--muted)}
+.row input{accent-color:var(--neon)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;color:var(--fg);font-variant-numeric:tabular-nums;text-align:right}
+.big{font:800 22px var(--display);color:var(--glow);font-variant-numeric:tabular-nums}
+.hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+.tool{display:flex;gap:6px}
+.tool button{flex:1;border:1px solid var(--line);background:var(--panel2);color:var(--fg);border-radius:9px;padding:7px;font:600 12.5px var(--body);cursor:pointer}
+.tool button[aria-pressed="true"]{border-color:var(--neon);background:rgba(30,155,255,.18)}
+.banner{margin:12px 16px;padding:9px 11px;border:1px solid rgba(255,210,122,.4);background:rgba(255,210,122,.07);border-radius:10px;font-size:11.5px;color:#f5e2b8}
+.legend{display:grid;gap:4px;font-size:12.5px}
+.legend span{display:flex;align-items:center;gap:8px}.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.overlay{position:absolute;left:12px;top:12px;background:rgba(10,16,32,.85);border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:12px;color:var(--muted);pointer-events:none}
+@media (max-width:760px){.app{flex-direction:column}aside{width:auto;height:45%;border-left:0;border-top:1px solid var(--line)}}
+</style>
+<div class="app">
+  <div id="stage"><div class="overlay" id="ov">Drag to orbit · Right-drag or two fingers to pan · Scroll or pinch to zoom</div></div>
+  <aside>
+    <div class="hd"><h1>Build Studio Viewer</h1><p id="proj"></p></div>
+    <div class="sec"><h2>Model</h2>
+      <div class="seg" role="group" aria-label="Model"><button data-m="deck" aria-pressed="true">12×10 deck</button><button data-m="lap" aria-pressed="false">Half-lap</button></div>
+      <label class="row" id="deckToggle"><input type="checkbox" id="showDeck" checked> Show decking</label>
+      <label class="row"><input type="checkbox" id="explode"> Explode view</label>
+    </div>
+    <div class="sec"><h2>Tool</h2>
+      <div class="tool"><button id="tSel" aria-pressed="true">Select</button><button id="tMeas" aria-pressed="false">Measure</button></div>
+      <p class="hint" id="toolHint">Click a member to see its details.</p>
+      <div id="measOut" hidden><div class="big" id="measVal">–</div><p class="hint" id="measAxes"></p></div>
+    </div>
+    <div class="sec"><h2>Selection</h2><dl class="kv" id="sel"><dt>Nothing selected</dt><dd></dd></dl></div>
+    <div class="sec"><h2>Materials</h2><div class="legend" id="legend"></div></div>
+    <div class="banner">Not for construction or permit unless reviewed and sealed by a licensed professional engineer or architect where required.</div>
+  </aside>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const DATA={"deck":{"project":{"name":"12 x 10 Backyard Deck","client":"Sample client","drawnBy":"Vivid Build Studio","revision":"A","description":"Attached deck with ledger, double beam on three posts, joists 16 in o.c., 5/4 x 6 decking.","display":{"units":"ft-in","fraction":16}},"units":"mm","bounds":[[0.0,0.0,0.0],[3657.6,3048.0,762.0]],"elements":[{"id":"ledger","name":"Ledger","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"2x8","length":"12'-0\"","productionNumber":"L1","assembly":"framing","boxes":[[0.0,0.0,552.45,3657.6,38.1,736.6]],"holes":[]},{"id":"rim-front","name":"Front rim joist","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"2x8","length":"12'-0\"","productionNumber":"R1","assembly":"framing","boxes":[[0.0,3009.9,552.45,3657.6,3048.0,736.6]],"holes":[]},{"id":"joist-1","name":"Joist","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"2x8","length":"9'-9\"","productionNumber":"J1","assembly":"framing","boxes":[[0.0,38.1,552.45,38.1,3009.9,736.6]],"holes":[]},{"id":"joist-2","name":"Joist","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"2x8","length":"9'-9\"","productionNumber":"J1","assembly":"framing","boxes":[[406.4,38.1,552.45,444.5,3009.9,736.6]],"holes":[]},{"id":"joist-3","name":"Joist","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"2x8","length":"9'-9\"","productionNumber":"J1","assembly":"framing","boxes":[[812.8,38.1,552.45,850.9,3009.9,736.6]],"holes":[]},{"id":"joist-4","name":"Joist","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"2x8","length":"9'-9\"","productionNumber":"J1","assembly":"framing","boxes":[[1219.2,38.1,552.45,1257.3,3009.9,736.6]],"holes":[]},{"id":"joist-5","name":"Joist","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"2x8","length":"9'-9\"","productionNumber":"J1","assembly":"framing","boxes":[[1625.6,38.1,552.45,1663.7,3009.9,736.6]],"holes":[]},{"id":"joist-6","name":"Joist","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"2x8","length":"9'-9\"","productionNumber":"J1","assembly":"framing","boxes":[[2032.0,38.1,552.45,2070.1,3009.9,736.6]],"holes":[]},{"id":"joist-7","name":"Joist","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"2x8","length":"9'-9\"","productionNumber":"J1","assembly":"framing","boxes":[[2438.4,38.1,552.45,2476.5,3009.9,736.6]],"holes":[]},{"id":"joist-8","name":"Joist","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"2x8","length":"9'-9\"","productionNumber":"J1","assembly":"framing","boxes":[[2844.8,38.1,552.45,2882.9,3009.9,736.6]],"holes":[]},{"id":"joist-9","name":"Joist","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"2x8","length":"9'-9\"","productionNumber":"J1","assembly":"framing","boxes":[[3251.2,38.1,552.45,3289.3,3009.9,736.6]],"holes":[]},{"id":"joist-10","name":"Joist","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"2x8","length":"9'-9\"","productionNumber":"J1","assembly":"framing","boxes":[[3619.5,38.1,552.45,3657.6,3009.9,736.6]],"holes":[]},{"id":"beam","name":"Beam (2) 2x10","type":"beam","material":"pt-syp","materialName":"Pressure-treated Southern yellow pine","color":"#b8945a","nominal":"(2) 2x10","length":"12'-0\"","productionNumber":"B1","assembly":"framing","boxes":[[0.0,2438.4,317.5,3657.6,2514.6,552.45]],"holes":[]},{"id":"post-1","name":"Post 6x6","type":"post","material":"pt-post","materialName":"Pressure-treated 6x6, ground contact","color":"#9c7a45","nominal":"6x6","length":"1'-1/2\"","productionNumber":"P1","assembly":"foundation","boxes":[[0.0,2406.65,0.0,139.7,2546.35,317.5]],"holes":[]},{"id":"post-2","name":"Post 6x6","type":"post","material":"pt-post","materialName":"Pressure-treated 6x6, ground contact","color":"#9c7a45","nominal":"6x6","length":"1'-1/2\"","productionNumber":"P1","assembly":"foundation","boxes":[[1758.95,2406.65,0.0,1898.65,2546.35,317.5]],"holes":[]},{"id":"post-3","name":"Post 6x6","type":"post","material":"pt-post","materialName":"Pressure-treated 6x6, ground contact","color":"#9c7a45","nominal":"6x6","length":"1'-1/2\"","productionNumber":"P1","assembly":"foundation","boxes":[[3517.9,2406.65,0.0,3657.6,2546.35,317.5]],"holes":[]},{"id":"board-1","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,0.0,736.6,3657.6,139.7,762.0]],"holes":[]},{"id":"board-2","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,142.875,736.6,3657.6,282.575,762.0]],"holes":[]},{"id":"board-3","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,285.75,736.6,3657.6,425.45,762.0]],"holes":[]},{"id":"board-4","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,428.625,736.6,3657.6,568.325,762.0]],"holes":[]},{"id":"board-5","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,571.5,736.6,3657.6,711.2,762.0]],"holes":[]},{"id":"board-6","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,714.375,736.6,3657.6,854.075,762.0]],"holes":[]},{"id":"board-7","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,857.25,736.6,3657.6,996.95,762.0]],"holes":[]},{"id":"board-8","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,1000.125,736.6,3657.6,1139.825,762.0]],"holes":[]},{"id":"board-9","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,1143.0,736.6,3657.6,1282.7,762.0]],"holes":[]},{"id":"board-10","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,1285.875,736.6,3657.6,1425.575,762.0]],"holes":[]},{"id":"board-11","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,1428.75,736.6,3657.6,1568.45,762.0]],"holes":[]},{"id":"board-12","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,1571.625,736.6,3657.6,1711.325,762.0]],"holes":[]},{"id":"board-13","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,1714.5,736.6,3657.6,1854.2,762.0]],"holes":[]},{"id":"board-14","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,1857.375,736.6,3657.6,1997.075,762.0]],"holes":[]},{"id":"board-15","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,2000.25,736.6,3657.6,2139.95,762.0]],"holes":[]},{"id":"board-16","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,2143.125,736.6,3657.6,2282.825,762.0]],"holes":[]},{"id":"board-17","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,2286.0,736.6,3657.6,2425.7,762.0]],"holes":[]},{"id":"board-18","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,2428.875,736.6,3657.6,2568.575,762.0]],"holes":[]},{"id":"board-19","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,2571.75,736.6,3657.6,2711.45,762.0]],"holes":[]},{"id":"board-20","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,2714.625,736.6,3657.6,2854.325,762.0]],"holes":[]},{"id":"board-21","name":"Deck board","type":"plate","material":"decking","materialName":"5/4 x 6 PT decking","color":"#c9a46b","nominal":"5/4x6","length":"12'-0\"","productionNumber":"D1","assembly":"surface","boxes":[[0.0,2908.3,736.6,3657.6,3048.0,762.0]],"holes":[]}]},"lap":{"project":{"name":"Half-lap beam crossing","drawnBy":"Vivid Build Studio","revision":"A","description":"Two 4x4 timbers crossing at mid-length, half-lapped flush and through-bolted.","display":{"units":"ft-in","fraction":16}},"units":"mm","bounds":[[0.0,0.0,0.0],[1219.2,1219.2,88.9]],"elements":[{"id":"beam-a","name":"Beam A","type":"beam","material":"df","materialName":"Douglas fir #1","color":"#c08b52","nominal":"4x4","length":"4'-0\"","productionNumber":"A1","assembly":null,"boxes":[[0.0,565.15,0.0,565.15,654.05,44.45],[0.0,565.15,44.45,1219.2,654.05,88.9],[654.05,565.15,0.0,1219.2,654.05,44.45]],"holes":[{"axis":"z","center":[609.6,609.6,88.9],"diameter":12.7,"lo":0.0,"hi":88.9}]},{"id":"beam-b","name":"Beam B","type":"beam","material":"df","materialName":"Douglas fir #1","color":"#c08b52","nominal":"4x4","length":"4'-0\"","productionNumber":"B1","assembly":null,"boxes":[[565.15,0.0,0.0,654.05,1219.2,44.45],[565.15,0.0,44.45,654.05,565.15,88.9],[565.15,654.05,44.45,654.05,1219.2,88.9]],"holes":[{"axis":"z","center":[609.6,609.6,88.9],"diameter":12.7,"lo":0.0,"hi":88.9}]}]}};
+(()=>{
+const stage=document.getElementById('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setClearColor(0x05080f);
+stage.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(40,1,10,200000);camera.up.set(0,0,1);
+scene.add(new THREE.HemisphereLight(0xdfe9ff,0x223044,0.85));
+const sun=new THREE.DirectionalLight(0xffffff,0.75);sun.position.set(-4000,-6000,9000);scene.add(sun);
+const grid=new THREE.GridHelper(20000,66,0x1e3a66,0x111d36);grid.rotation.x=Math.PI/2;scene.add(grid);
+const group=new THREE.Group();scene.add(group);
+let model='deck',meshes=[],selected=null,tool='select',meas=[];
+const edgeMat=new THREE.LineBasicMaterial({color:0x0b1222,transparent:true,opacity:.55});
+// ft-in with 1/16" from millimetres
+function ftin(mm){let i=Math.round(Math.abs(mm)/25.4*16);const ft=Math.floor(i/192);i-=ft*192;const inch=Math.floor(i/16);let f=i%16,d=16;while(f&&f%2===0){f/=2;d/=2}
+  const fr=f?`${f}/${d}`:'';const ins=inch?(fr?`${inch}-${fr}`:`${inch}`):(fr||'0');return (ft?`${ft}'-`:'')+ins+'"'}
+function build(){
+  group.clear();meshes=[];selected=null;
+  const M=DATA[model];document.getElementById('proj').textContent=M.project.name;
+  const mats={};
+  M.elements.forEach(el=>{
+    const color=new THREE.Color(el.color);
+    mats[el.materialName]=el.color;
+    el.boxes.forEach(b=>{
+      const [x0,y0,z0,x1,y1,z1]=b;const g=new THREE.BoxGeometry(x1-x0,y1-y0,z1-z0);
+      const m=new THREE.MeshStandardMaterial({color,roughness:.85,metalness:0});
+      const mesh=new THREE.Mesh(g,m);mesh.position.set((x0+x1)/2,(y0+y1)/2,(z0+z1)/2);
+      mesh.userData={el,base:mesh.position.clone(),color};
+      const e=new THREE.LineSegments(new THREE.EdgesGeometry(g),edgeMat);mesh.add(e);
+      group.add(mesh);meshes.push(mesh);
+    });
+    el.holes.forEach(h=>{
+      const len=h.hi-h.lo;const g=new THREE.CylinderGeometry(h.diameter/2,h.diameter/2,len+2,24);
+      const m=new THREE.MeshBasicMaterial({color:0x05080f});const c=new THREE.Mesh(g,m);
+      const p=h.center.slice();const ai='xyz'.indexOf(h.axis);p[ai]=(h.lo+h.hi)/2;c.position.set(...p);
+      if(h.axis==='z')c.rotation.x=Math.PI/2;if(h.axis==='x')c.rotation.z=Math.PI/2;group.add(c);
+    });
+  });
+  document.getElementById('legend').innerHTML=Object.entries(mats).map(([n,c])=>`<span><i style="background:${c}"></i>${n}</span>`).join('');
+  document.getElementById('deckToggle').hidden=model!=='deck';
+  applyToggles();frame();showSel(null);clearMeas();
+}
+function applyToggles(){
+  const show=document.getElementById('showDeck').checked, ex=document.getElementById('explode').checked;
+  const b=DATA[model].bounds;const c=[(b[0][0]+b[1][0])/2,(b[0][1]+b[1][1])/2,(b[0][2]+b[1][2])/2];
+  meshes.forEach(m=>{const el=m.userData.el;m.visible=!(model==='deck'&&!show&&el.assembly==='surface');
+    const p=m.userData.base.clone();if(ex){const k={surface:900,framing:350,foundation:0}[el.assembly]??0;p.z+=k;if(model==='lap'){p.z+= el.id==='beam-a'?250:0}}m.position.copy(p)});
+}
+// orbit camera (spherical around target)
+let target=new THREE.Vector3(),rad=8000,th=-2.2,ph=1.05;
+function frame(){const b=DATA[model].bounds;target.set((b[0][0]+b[1][0])/2,(b[0][1]+b[1][1])/2,(b[0][2]+b[1][2])/2*0.6);
+  const s=Math.max(b[1][0]-b[0][0],b[1][1]-b[0][1],b[1][2]-b[0][2]);rad=s*1.9;place()}
+function place(){ph=Math.max(.05,Math.min(Math.PI/2-.02,ph));camera.position.set(target.x+rad*Math.sin(ph)*Math.cos(th),target.y+rad*Math.sin(ph)*Math.sin(th),target.z+rad*Math.cos(ph));camera.lookAt(target)}
+let drag=null,moved=false;const pts=new Map();
+renderer.domElement.addEventListener('pointerdown',e=>{renderer.domElement.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});drag={x:e.clientX,y:e.clientY,btn:e.button,th,ph,t:target.clone()};moved=false});
+renderer.domElement.addEventListener('pointermove',e=>{if(!drag||!pts.has(e.pointerId))return;const prev=pts.get(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pts.size===2){const [a,b]=[...pts.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(drag.d){rad*=drag.d/d}drag.d=d;moved=true;place();return}
+  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
+  if(drag.btn===2||e.shiftKey){const s=rad*0.0012;const right=new THREE.Vector3().subVectors(camera.position,target).cross(camera.up).normalize();
+    target.copy(drag.t).addScaledVector(right,dx*s).add(new THREE.Vector3(0,0,dy*s));place()}
+  else{th=drag.th-dx*0.006;ph=drag.ph-dy*0.006;place()}});
+renderer.domElement.addEventListener('pointerup',e=>{pts.delete(e.pointerId);if(drag&&!moved)pick(e);if(!pts.size)drag=null});
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();rad*=Math.exp(e.deltaY*0.001);place()},{passive:false});
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+function hit(e){const r=renderer.domElement.getBoundingClientRect();mouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(mouse,camera);
+  return ray.intersectObjects(meshes.filter(m=>m.visible),false)[0]}
+function pick(e){const h=hit(e);
+  if(tool==='select'){if(selected)selected.material.emissive.setHex(0);selected=h?h.object:null;if(selected)selected.material.emissive.setHex(0x0d3a6a);showSel(selected&&selected.userData.el);return}
+  if(!h)return;
+  // snap to the nearest box corner so measurements are exact
+  const m=h.object,g=m.geometry.parameters,c=m.position;let best=null,bd=1e9;
+  for(const sx of[-1,1])for(const sy of[-1,1])for(const sz of[-1,1]){const p=new THREE.Vector3(c.x+sx*g.width/2,c.y+sy*g.height/2,c.z+sz*g.depth/2);const d=p.distanceTo(h.point);if(d<bd){bd=d;best=p}}
+  const p=bd<rad*0.03?best:h.point;meas.push(p);addMarker(p);
+  if(meas.length===2){const [a,b]=meas;const d=a.distanceTo(b);document.getElementById('measOut').hidden=false;document.getElementById('measVal').textContent=ftin(d);
+    document.getElementById('measAxes').textContent=`ΔX ${ftin(b.x-a.x)} · ΔY ${ftin(b.y-a.y)} · ΔZ ${ftin(b.z-a.z)}`;
+    const lg=new THREE.BufferGeometry().setFromPoints([a,b]);const ln=new THREE.Line(lg,new THREE.LineBasicMaterial({color:0x4cc6ff}));ln.userData.meas=1;scene.add(ln);meas=[]}}
+function addMarker(p){const s=new THREE.Mesh(new THREE.SphereGeometry(rad*0.004,12,12),new THREE.MeshBasicMaterial({color:0x4cc6ff}));s.position.copy(p);s.userData.meas=1;scene.add(s)}
+function clearMeas(){scene.children.filter(o=>o.userData.meas).forEach(o=>scene.remove(o));meas=[];document.getElementById('measOut').hidden=true}
+function showSel(el){const d=document.getElementById('sel');if(!el){d.innerHTML='<dt>Nothing selected</dt><dd></dd>';return}
+  const rows=[['Name',el.name],['Size',el.nominal||'–'],['Length',el.length],['Material',el.materialName],['Production no.',el.productionNumber||'–'],['Holes',el.holes.length?el.holes.map(h=>ftin(h.diameter)+' Ø').join(', '):'none'],['ID',el.id]];
+  d.innerHTML=rows.map(([k,v])=>`<dt>${k}</dt><dd>${String(v).replace(/</g,'&lt;')}</dd>`).join('')}
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));model=b.dataset.m;build()});
+document.getElementById('showDeck').onchange=applyToggles;document.getElementById('explode').onchange=applyToggles;
+const setTool=t=>{tool=t;document.getElementById('tSel').setAttribute('aria-pressed',t==='select');document.getElementById('tMeas').setAttribute('aria-pressed',t==='measure');
+  document.getElementById('toolHint').textContent=t==='select'?'Click a member to see its details.':'Click two points. Clicks near a corner snap to it for exact measurements.';if(t==='select')clearMeas()};
+document.getElementById('tSel').onclick=()=>setTool('select');document.getElementById('tMeas').onclick=()=>setTool('measure');
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();build();
+(function loop(){renderer.render(scene,camera);requestAnimationFrame(loop)})();
+})();
+</script>

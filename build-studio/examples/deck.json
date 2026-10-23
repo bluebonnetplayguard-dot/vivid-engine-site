@@ -1,0 +1,247 @@
+{
+  "specVersion": "1.0",
+  "project": {
+    "name": "12 x 10 Backyard Deck",
+    "client": "Sample client",
+    "drawnBy": "Vivid Build Studio",
+    "revision": "A",
+    "description": "Attached deck with ledger, double beam on three posts, joists 16 in o.c., 5/4 x 6 decking.",
+    "display": {
+      "units": "ft-in",
+      "fraction": 16
+    }
+  },
+  "parameters": {
+    "deck_width": "12ft",
+    "deck_depth": "10ft",
+    "deck_height": "30in",
+    "joist_spacing": "16in",
+    "joist_count": "floor(deck_width / joist_spacing) + 1",
+    "board_width": "5-1/2in",
+    "board_gap": "1/8in",
+    "board_count": "floor((deck_depth + board_gap) / (board_width + board_gap))",
+    "joist_bottom": "deck_height - 1in - 7-1/4in",
+    "beam_setback": "2ft",
+    "beam_y": "deck_depth - beam_setback",
+    "beam_bottom": "joist_bottom - 9-1/4in"
+  },
+  "materials": {
+    "pt-syp": {
+      "name": "Pressure-treated Southern yellow pine",
+      "kind": "lumber",
+      "grade": "#2",
+      "color": "#b8945a"
+    },
+    "pt-post": {
+      "name": "Pressure-treated 6x6, ground contact",
+      "kind": "lumber",
+      "grade": "#2",
+      "color": "#9c7a45"
+    },
+    "decking": {
+      "name": "5/4 x 6 PT decking",
+      "kind": "lumber",
+      "color": "#c9a46b"
+    }
+  },
+  "sections": {
+    "2x8": {
+      "nominal": "2x8",
+      "width": "1-1/2in",
+      "depth": "7-1/4in"
+    },
+    "dbl-2x10": {
+      "nominal": "(2) 2x10",
+      "width": "3in",
+      "depth": "9-1/4in"
+    },
+    "6x6": {
+      "nominal": "6x6",
+      "width": "5-1/2in",
+      "depth": "5-1/2in"
+    },
+    "5/4x6": {
+      "nominal": "5/4x6",
+      "width": "5-1/2in",
+      "depth": "1in"
+    }
+  },
+  "assemblies": [
+    {
+      "id": "framing",
+      "name": "Framing"
+    },
+    {
+      "id": "foundation",
+      "name": "Posts"
+    },
+    {
+      "id": "surface",
+      "name": "Decking"
+    }
+  ],
+  "elements": [
+    {
+      "id": "ledger",
+      "type": "beam",
+      "name": "Ledger",
+      "material": "pt-syp",
+      "section": "2x8",
+      "length": "deck_width",
+      "placement": {
+        "origin": [
+          "0",
+          "0",
+          "joist_bottom"
+        ],
+        "rotation": "along-x"
+      },
+      "attributes": {
+        "productionNumber": "L1",
+        "group": "Framing"
+      },
+      "assembly": "framing"
+    },
+    {
+      "id": "rim-front",
+      "type": "beam",
+      "name": "Front rim joist",
+      "material": "pt-syp",
+      "section": "2x8",
+      "length": "deck_width",
+      "placement": {
+        "origin": [
+          "0",
+          "deck_depth - 1-1/2in",
+          "joist_bottom"
+        ],
+        "rotation": "along-x"
+      },
+      "attributes": {
+        "productionNumber": "R1",
+        "group": "Framing"
+      },
+      "assembly": "framing"
+    },
+    {
+      "id": "joist",
+      "pattern": "linear",
+      "axis": "x",
+      "spacing": "joist_spacing",
+      "count": "joist_count",
+      "endAt": "deck_width - 1-1/2in",
+      "template": {
+        "id": "joist",
+        "type": "beam",
+        "name": "Joist",
+        "material": "pt-syp",
+        "section": "2x8",
+        "length": "deck_depth - 3in",
+        "placement": {
+          "origin": [
+            "0",
+            "1-1/2in",
+            "joist_bottom"
+          ],
+          "rotation": "along-y"
+        },
+        "attributes": {
+          "productionNumber": "J1",
+          "group": "Framing"
+        },
+        "assembly": "framing"
+      }
+    },
+    {
+      "id": "beam",
+      "type": "beam",
+      "name": "Beam (2) 2x10",
+      "material": "pt-syp",
+      "section": "dbl-2x10",
+      "length": "deck_width",
+      "placement": {
+        "origin": [
+          "0",
+          "beam_y",
+          "beam_bottom"
+        ],
+        "rotation": "along-x"
+      },
+      "attributes": {
+        "productionNumber": "B1",
+        "group": "Framing"
+      },
+      "assembly": "framing"
+    },
+    {
+      "id": "post",
+      "pattern": "linear",
+      "axis": "x",
+      "spacing": "(deck_width - 5-1/2in) / 2",
+      "count": "3",
+      "template": {
+        "id": "post",
+        "type": "post",
+        "name": "Post 6x6",
+        "material": "pt-post",
+        "section": "6x6",
+        "length": "beam_bottom",
+        "placement": {
+          "origin": [
+            "0",
+            "beam_y + 1-1/2in - 2-3/4in",
+            "0"
+          ],
+          "rotation": "along-z"
+        },
+        "attributes": {
+          "productionNumber": "P1",
+          "group": "Posts"
+        },
+        "assembly": "foundation"
+      }
+    },
+    {
+      "id": "board",
+      "pattern": "linear",
+      "axis": "y",
+      "spacing": "board_width + board_gap",
+      "count": "board_count",
+      "endAt": "deck_depth - board_width",
+      "template": {
+        "id": "board",
+        "type": "plate",
+        "name": "Deck board",
+        "material": "decking",
+        "section": "5/4x6",
+        "length": "deck_width",
+        "placement": {
+          "origin": [
+            "0",
+            "0",
+            "deck_height - 1in"
+          ],
+          "rotation": "along-x"
+        },
+        "attributes": {
+          "productionNumber": "D1",
+          "group": "Decking"
+        },
+        "assembly": "surface"
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "type": "flush",
+      "a": "rim-front",
+      "b": "joist",
+      "face": "top"
+    },
+    {
+      "type": "perpendicular",
+      "a": "joist",
+      "b": "beam"
+    }
+  ]
+}
