@@ -120,7 +120,7 @@ export default function ConstructionConfigurator() {
     if (client.name || client.address) { y += 15; doc.text(pdfText(`Prepared for: ${[client.name, client.address].filter(Boolean).join(', ')}`), M, y); }
     const img = viewer.current?.snapshot();
     y += 12;
-    if (img) { const iw = W - 2 * M, ih = iw * 0.5; doc.addImage(img, 'PNG', M, y, iw, ih); y += ih + 14; }
+    if (img) { const pr = doc.getImageProperties(img); const iw = W - 2 * M, ih = Math.min(300, iw * pr.height / pr.width), w2 = ih * pr.width / pr.height; doc.addImage(img, 'PNG', M + (iw - w2) / 2, y, w2, ih); y += ih + 14; }
     doc.setFont('helvetica', 'bold'); doc.text('Design', M, y); doc.setFont('helvetica', 'normal'); y += 13;
     for (const f of model.facts) { doc.text(pdfText(`${f.label}: ${f.value}`), M, y); y += 12; }
     y += 6;
