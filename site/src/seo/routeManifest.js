@@ -29,7 +29,7 @@ export const PRIVATE_PATTERNS = [
 export function buildRouteManifest() {
   const entries = [
     { path: '/' },                                   // Home: <SEO path="/" />
-    PAGE_META.about, PAGE_META.contact, PAGE_META.estimator, PAGE_META.support, PAGE_META.privacy,
+    PAGE_META.about, PAGE_META.contact, PAGE_META.estimator, PAGE_META.construction, PAGE_META.support, PAGE_META.privacy,
     PAGE_META.services, PAGE_META.maintenance, PAGE_META.domainLeasing, PAGE_META.faq, PAGE_META.serviceAreas,
     PAGE_SEO.pricing, PAGE_SEO.deleteAccount,
     PAGE_META.aiSearch, PAGE_META.aiSearchPricing,

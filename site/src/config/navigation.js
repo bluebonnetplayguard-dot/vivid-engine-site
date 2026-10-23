@@ -16,6 +16,7 @@ export const NAV_GROUPS = [
         { label: 'Start a project', to: '/start' },
         { label: 'Custom app development', to: '/services/custom-app-development' },
         { label: 'Vivid Estimator', to: '/vivid-estimator' },
+        { label: '3D Construction Configurator', to: '/construction' },
       ] },
       { id: 'video', label: 'Video Studio', to: '/video', icon: 'video', children: [
         { label: 'Open Video Studio', to: '/video' },
@@ -54,7 +55,7 @@ export const NAV_GROUPS = [
 
 export const FOOTER_COLUMNS = [
   { title: 'Search', links: [{ label: 'Vivid AI Search', to: '/ai-search' }, { label: 'Search plans', to: '/ai-search/pricing' }, { label: 'History', to: '/ai-search' }] },
-  { title: 'Build', links: [{ label: 'Start a project', to: '/start' }, { label: 'App development', to: '/services/custom-app-development' }, { label: 'Video Studio', to: '/video' }, { label: 'Vivid Estimator', to: '/vivid-estimator' }] },
+  { title: 'Build', links: [{ label: 'Start a project', to: '/start' }, { label: 'App development', to: '/services/custom-app-development' }, { label: 'Video Studio', to: '/video' }, { label: 'Vivid Estimator', to: '/vivid-estimator' }, { label: '3D Construction', to: '/construction' }] },
   { title: 'Services', links: [{ label: 'Website design', to: '/services' }, { label: 'Website maintenance', to: '/maintenance' }, { label: 'Domain leasing', to: '/domain-leasing' }, { label: 'Service areas', to: '/service-areas' }] },
   { title: 'Pricing', links: [{ label: 'AI Search plans', to: '/ai-search/pricing' }, { label: 'Websites & care', to: '/pricing' }, { label: 'Video plans', to: '/video/pricing' }, { label: 'Pay online', to: '/#pay' }] },
   { title: 'Help', links: [{ label: 'Help & support', to: '/support' }, { label: 'About us', to: '/about' }, { label: 'FAQ', to: '/faq' }, { label: 'Contact', to: '/contact' }, { label: 'Client login', to: '/login?returnTo=%2Fportal' }] },

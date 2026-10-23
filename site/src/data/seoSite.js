@@ -96,6 +96,7 @@ export const PAGE_META = {
   videoPricing: { path: '/video/pricing', title: 'Vivid Video Studio Plans & Pricing', description: 'Free, Creator $12, Pro $29 and Studio $59 a month, or Business at $24 per seat. Compare resolution, video length, effects, brand kits and AI allowances.' },
   videoAccount: { path: '/video/account', title: 'Your Video Studio Plan', description: 'Your Vivid Video Studio plan, usage, billing and team seats.' },
   videoEditor: { path: '/video/edit', title: 'Video Editor | Vivid Video Studio', description: 'Edit your video in Vivid Video Studio.' },
+  construction: { path: '/construction', title: '3D Construction Configurator | Sheds, Decks, Garages & Playsets', description: 'Design a shed, garage, deck, pergola or play structure in 3D. Set the options and get a live framing model, materials list, cut list and cost estimate.' },
   estimator: { path: '/vivid-estimator', title: 'Vivid Estimator | Project Scope & Pricing Tool', description: 'Plan your custom website or app with Vivid Estimator. Explore services, project scope, domain options and transparent launch pricing.' },
   login: { path: '/login', title: 'Client Login', description: 'Sign in securely to access your Vivid Engine Solutions client account and project tools.' },
   register: { path: '/register', title: 'Create Your Client Account', description: 'Create and verify a Vivid Engine Solutions account to begin planning your project.' },

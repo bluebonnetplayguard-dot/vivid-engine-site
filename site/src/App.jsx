@@ -24,6 +24,7 @@ const Home = lazy(() => import('@/pages/Home'));
 const About = lazy(() => import('@/pages/About'));
 const Contact = lazy(() => import('@/pages/Contact'));
 const VividEstimatorLanding = lazy(() => import('@/pages/VividEstimatorLanding'));
+const ConstructionConfigurator = lazy(() => import('@/pages/ConstructionConfigurator'));
 const StartProject = lazy(() => import('@/pages/StartProject'));
 const Support = lazy(() => import('@/pages/Support'));
 const Privacy = lazy(() => import('@/pages/Privacy'));
@@ -97,6 +98,7 @@ const AuthenticatedApp = () => {
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/vivid-estimator" element={<VividEstimatorLanding />} />
+      <Route path="/construction" element={<ConstructionConfigurator />} />
       <Route path="/support" element={<Support />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/delete-account" element={<DeleteAccount />} />
