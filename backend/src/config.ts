@@ -79,6 +79,12 @@ const schema = z.object({
   GEOMETRY_SERVICE_URL: z.string().optional(),
   BUILD_STUDIO_MODEL: z.string().default('claude-sonnet-5-5'),
 
+  // Saved conversation history is encrypted at rest with this key (32 random bytes, base64: openssl rand -base64 32).
+  // Without it, production keeps history switched off rather than storing it unencrypted.
+  // To rotate: put the new key here and move the old one to HISTORY_ENCRYPTION_KEY_PREVIOUS (comma list).
+  HISTORY_ENCRYPTION_KEY: z.string().optional(),
+  HISTORY_ENCRYPTION_KEY_PREVIOUS: z.string().optional(),
+
   // IndexNow key; the site must serve /<key>.txt containing the key.
   INDEXNOW_KEY: z.string().optional(),
 });

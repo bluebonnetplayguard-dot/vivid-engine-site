@@ -82,16 +82,7 @@ export const TIERS: Tier[] = [
   },
 ];
 
-// Saved conversation history (paid plans only). The server enforces this; the site only reads it.
-export interface HistoryPlan { retentionDays: number | null; fullTextSearch: boolean; bulkExport: boolean }
-export const HISTORY_BY_TIER: Partial<Record<TierId, HistoryPlan>> = {
-  starter: { retentionDays: 365, fullTextSearch: false, bulkExport: false },
-  plus: { retentionDays: 365, fullTextSearch: false, bulkExport: false },
-  pro: { retentionDays: null, fullTextSearch: true, bulkExport: true },
-  max: { retentionDays: null, fullTextSearch: true, bulkExport: true },
-  business: { retentionDays: null, fullTextSearch: true, bulkExport: true },
-};
-export const DOWNGRADE_READ_ONLY_DAYS = 30;
+// Saved conversation history rules live in ../history/rules.ts and the pricing catalog (shared/pricing-catalog.ts).
 
 export const tierById = (id: string | null | undefined): Tier => TIERS.find(t => t.id === id) ?? TIERS[0];
 export const PAID_TIER_IDS = TIERS.filter(t => t.priceMonthly > 0).map(t => t.id);

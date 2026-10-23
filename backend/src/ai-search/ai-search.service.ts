@@ -1,16 +1,18 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import Anthropic from '@anthropic-ai/sdk';
 import type { Request, Response } from 'express';
 import { AuthUser } from '../auth/guard';
 import { config } from '../config';
 import { Db } from '../db';
 import { ApiError, badRequest, forbidden, notFound } from '../errors';
+import { HistoryService } from '../history/history.service';
+import { HistoryAccess, shouldSave } from '../history/rules';
 import { RateLimiter } from '../rate-limit';
 import { isEmail, str } from '../shared/guards';
 import { buildKnowledge } from '../shared/knowledge';
 import { ContributorAnswer, consultContributors, contributorConfigured, CONTRIBUTOR_LABELS } from './contributors';
 import { AgentApiError, agentConfigured, agentStream } from './perplexity-agent';
-import { CONTRIBUTOR_COST, DOWNGRADE_READ_ONLY_DAYS, HISTORY_BY_TIER, MODEL_RATES, Tier, tierById, WEB_SEARCH_COST } from './plans';
+import { CONTRIBUTOR_COST, MODEL_RATES, Tier, tierById, WEB_SEARCH_COST } from './plans';
 
 // Vivid AI Search: a research and website-building assistant. Claude answers with live web
 // search and citations; on paid tiers, other engines (Perplexity, Gemini, ChatGPT) are asked
@@ -49,66 +51,17 @@ export interface Entitlement {
 
 interface Source { url: string; title: string; cited: boolean }
 
-// What this person may do with saved conversations. Sent to the site as me.entitlements.history.
-export interface HistoryAccess {
-  allowed: boolean;          // saves new conversations and can open old ones
-  readOnly: boolean;         // plan ended in the last 30 days: can open, export and delete, not add
-  readOnlyUntil: string | null;
-  retentionDays: number | null;
-  fullTextSearch: boolean;
-  bulkExport: boolean;
-}
-const NO_HISTORY: HistoryAccess = { allowed: false, readOnly: false, readOnlyUntil: null, retentionDays: 0, fullTextSearch: false, bulkExport: false };
-const AUTO_DELETE_DAYS = [30, 90, 365];
-const MAX_SPACE = 60;
-
 @Injectable()
-export class AiSearchService implements OnModuleInit, OnModuleDestroy {
+export class AiSearchService {
   private readonly log = new Logger('AiSearch');
   private readonly client = config.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: config.ANTHROPIC_API_KEY }) : null;
   private freeInFlight = 0;
   private readonly inFlight = new Map<string, number>();
 
-  private cleanupTimer: NodeJS.Timeout | null = null;
+  constructor(private readonly db: Db, private readonly limiter: RateLimiter, private readonly hist: HistoryService) {}
 
-  constructor(private readonly db: Db, private readonly limiter: RateLimiter) {}
-
-  // Auto-delete: conversations whose owner chose 30/90/365 days, once a quiet period has passed.
-  onModuleInit() {
-    const run = () => this.cleanup().catch(e => this.log.warn(`History cleanup failed: ${e.message}`));
-    setTimeout(run, 60_000).unref();
-    this.cleanupTimer = setInterval(run, 6 * 3600_000);
-    this.cleanupTimer.unref();
-  }
-  onModuleDestroy() { if (this.cleanupTimer) clearInterval(this.cleanupTimer); }
-
-  async cleanup() {
-    const rows = await this.db.query(
-      `DELETE FROM ai_threads WHERE auto_delete_days IS NOT NULL AND pinned = false
-          AND updated_date < now() - make_interval(days => auto_delete_days) RETURNING id`);
-    if (rows.length) this.log.log(`Auto-deleted ${rows.length} conversation(s) past their chosen age.`);
-  }
-
-  // Paid plans save history. Someone whose paid plan ended in the last 30 days keeps read-only access.
-  async history(user: AuthUser, ent?: Entitlement): Promise<HistoryAccess> {
-    const e = ent ?? await this.entitlement(user);
-    const plan = HISTORY_BY_TIER[e.tier.id];
-    if (plan) return { allowed: true, readOnly: false, readOnlyUntil: null, ...plan };
-    const ended = await this.db.one<{ until: string; tier: string }>(
-      `SELECT tier, (updated_date + make_interval(days => $2))::text AS until FROM ai_subscriptions
-        WHERE owner_user_id = $1 AND NOT (status = ANY($3)) AND updated_date > now() - make_interval(days => $2)
-        ORDER BY updated_date DESC LIMIT 1`, [user.id, DOWNGRADE_READ_ONLY_DAYS, ACTIVE_STATUSES]);
-    if (!ended) return NO_HISTORY;
-    const was = HISTORY_BY_TIER[tierById(ended.tier).id] ?? HISTORY_BY_TIER.starter!;
-    return { allowed: true, readOnly: true, readOnlyUntil: ended.until, ...was };
-  }
-
-  private async requireHistory(user: AuthUser, write = false) {
-    const h = await this.history(user);
-    if (!h.allowed) throw forbidden('Saved conversations come with a paid plan.');
-    if (write && h.readOnly) throw forbidden(`Your plan has ended, so saved conversations are read-only until ${h.readOnlyUntil?.slice(0, 10)}. Renew to keep adding to them.`);
-    return h;
-  }
+  // Saved history is a paid feature and lives in HistoryService (encrypted at rest, plan rules in history/rules.ts).
+  history(user: AuthUser): Promise<HistoryAccess> { return this.hist.access(user); }
 
   // ---------- plans, seats and limits ----------
 
@@ -126,7 +79,7 @@ export class AiSearchService implements OnModuleInit, OnModuleDestroy {
         WHERE (seat.user_id = $1 OR lower(seat.email) = lower($2)) AND s.tier = 'business' AND s.status = ANY($3)
         ORDER BY seat.created_date LIMIT 1`, [user.id, user.email, ACTIVE_STATUSES]);
     if (seat && seat.seat_rank <= seat.seats) {
-      if (!seat.seat_user_id) await this.db.query('UPDATE ai_seats SET user_id = $1 WHERE id = $2', [user.id, seat.seat_id]);
+      if (!seat.seat_user_id) { await this.db.query('UPDATE ai_seats SET user_id = $1 WHERE id = $2', [user.id, seat.seat_id]); await this.hist.refreshEntitlements(user.id); }
       return { tier: tierById('business'), subscription: seat, role: 'member' };
     }
     return { tier: tierById('free'), subscription: null, role: 'free' };
@@ -147,7 +100,7 @@ export class AiSearchService implements OnModuleInit, OnModuleDestroy {
     const ent = await this.entitlement(user);
     const usage = await this.counts(user, ent);
     const sub = ent.subscription;
-    const history = await this.history(user, ent);
+    const history = await this.hist.publicState(user);
     return {
       entitlements: { history },
       tier: { id: ent.tier.id, name: ent.tier.name, modelLabel: ent.tier.modelLabel, contributors: ent.tier.contributors.filter(contributorConfigured).map(id => CONTRIBUTOR_LABELS[id]) },
@@ -203,21 +156,17 @@ export class AiSearchService implements OnModuleInit, OnModuleDestroy {
 
     // Saving: paid plans only, never in private mode, never while read-only after a downgrade.
     // Unsaved conversations send their own recent turns (body.history) so follow-ups still have context.
-    const access = await this.history(user, ent);
-    const save = access.allowed && !access.readOnly && body?.private !== true;
+    const access = await this.hist.access(user);
+    const save = shouldSave(access, body?.private === true) && this.hist.enabled;
     let thread: { id: string; title: string } | null = null;
     let history: { role: 'user' | 'assistant'; content: string }[];
     if (save) {
-      if (threadId) {
-        const found = await this.db.one('SELECT id, title FROM ai_threads WHERE id = $1 AND user_id = $2', [threadId, user.id]);
-        if (!found) throw notFound('Conversation not found.');
-        thread = found;
-      } else {
-        thread = (await this.db.one('INSERT INTO ai_threads(user_id, title) VALUES ($1, $2) RETURNING id, title', [user.id, question.replace(/\s+/g, ' ').slice(0, 80)]))!;
+      if (threadId) thread = { id: threadId, title: await this.hist.title(user, threadId) };
+      else {
+        const title = question.replace(/\s+/g, ' ').slice(0, 80);
+        thread = { id: await this.hist.open(user, title, 'search', tier.id), title };
       }
-      history = (await this.db.query<{ role: 'user' | 'assistant'; content: string }>(
-        `SELECT role, content FROM (SELECT id, role, content FROM ai_messages WHERE thread_id = $1 ORDER BY id DESC LIMIT $2) t ORDER BY id`,
-        [thread.id, tier.historyTurns])).filter(m => m.content.trim());
+      history = threadId ? await this.hist.recentTurns(user, thread.id, tier.historyTurns) : [];
     } else {
       if (threadId && access.readOnly) throw forbidden('This conversation is read-only because your plan has ended. Start a new search, or renew to continue it.');
       history = (Array.isArray(body?.history) ? body.history : [])
@@ -225,6 +174,8 @@ export class AiSearchService implements OnModuleInit, OnModuleDestroy {
         .slice(-tier.historyTurns)
         .map((m: any) => ({ role: m.role as 'user' | 'assistant', content: String(m.content).slice(0, 8000) }));
     }
+    // Memory (Search Max / All-In-One, only when switched on): a few earlier answers on the same subject, as data.
+    const remembered = await this.hist.memory(user, question, thread?.id ?? null);
     while (history.length && history[0].role !== 'user') history.shift();
     // The API needs strictly alternating turns; drop any repeats a client might send.
     history = history.filter((m, i, all) => i === 0 || m.role !== all[i - 1].role);
@@ -234,7 +185,7 @@ export class AiSearchService implements OnModuleInit, OnModuleDestroy {
     const usageRow = await this.db.one<{ id: string }>(
       'INSERT INTO ai_usage(user_id, subscription_id, tier, model) VALUES ($1, $2, $3, $4) RETURNING id',
       [user.id, ent.subscription?.id ?? null, tier.id, tier.model]);
-    if (thread) await this.db.query('INSERT INTO ai_messages(thread_id, role, content) VALUES ($1, $2, $3)', [thread.id, 'user', question]);
+    if (thread) await this.hist.addMessage(user, thread.id, { role: 'user', content: question });
 
     this.inFlight.set(user.id, mine + 1);
     if (!tier.priority) this.freeInFlight++;
@@ -269,7 +220,8 @@ export class AiSearchService implements OnModuleInit, OnModuleDestroy {
       const today = new Date().toISOString().slice(0, 10);
       const userTurn = `Today's date: ${today}\n\n${question}` + (opinions.length
         ? `\n\n<second_opinions>\n${opinions.map(a => `<opinion engine="${a.label}">\n${a.text}\n${a.sources.length ? `Sources it cited: ${a.sources.map(s => s.url).join(' ')}` : ''}\n</opinion>`).join('\n')}\n</second_opinions>`
-        : '');
+        : '')
+        + (remembered.length ? `\n\n<earlier_conversations>\n${remembered.map(r => `<note>${r}</note>`).join('\n')}\n</earlier_conversations>` : '');
       const messages: Anthropic.Beta.BetaMessageParam[] = [
         ...history.map(m => ({ role: m.role, content: m.content })),
         { role: 'user', content: userTurn },
@@ -353,11 +305,8 @@ export class AiSearchService implements OnModuleInit, OnModuleDestroy {
       }
 
       const ordered = [...sources.filter(s => s.cited), ...sources.filter(s => !s.cited)].slice(0, 16);
-      const contribSummary = contributorAnswers.map(a => ({ id: a.id, label: a.label, ok: a.ok, sources: a.sources }));
       if (thread) {
-        await this.db.query('INSERT INTO ai_messages(thread_id, role, content, sources, contributors) VALUES ($1, $2, $3, $4, $5)',
-          [thread.id, 'assistant', text || '(no answer)', JSON.stringify(ordered), JSON.stringify(contribSummary)]);
-        await this.db.query('UPDATE ai_threads SET updated_date = now() WHERE id = $1', [thread.id]);
+        await this.hist.addMessage(user, thread.id, { role: 'assistant', content: text || '(no answer)', engine: viaPerplexity ? 'perplexity' : 'claude', sources: ordered });
       }
       send('sources', ordered);
       send('done', { usage: await this.counts(user, ent) });
@@ -371,7 +320,7 @@ export class AiSearchService implements OnModuleInit, OnModuleDestroy {
           : 'Something went wrong while answering. Please try again.';
         send('error', { message });
       }
-      if (text && thread) await this.db.query('INSERT INTO ai_messages(thread_id, role, content) VALUES ($1, $2, $3)', [thread.id, 'assistant', text]).catch(() => {});
+      if (text && thread) await this.hist.addMessage(user, thread.id, { role: 'assistant', content: text }).catch(() => {});
     } finally {
       const rates = MODEL_RATES[tier.model] ?? MODEL_RATES['claude-sonnet-5-5'];
       // Perplexity reports its real cost per request; otherwise estimate from list prices.
@@ -391,84 +340,34 @@ export class AiSearchService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // ---------- saved conversations ----------
+  // ---------- saved conversations (kept for the existing site; the same data is under /api/history) ----------
 
-  // List: pinned first, then newest. q searches titles (and message text on plans with full-text search).
+  private legacyShape(c: any) { return { id: c.id, title: c.title, updated_date: c.updated_date, pinned: c.pinned, favorite: c.favorite, space: c.space?.name ?? null, auto_delete_days: c.auto_delete_days }; }
+
   async threads(user: AuthUser, query: { q?: string; space?: string; favorites?: string } = {}) {
-    const h = await this.history(user);
-    if (!h.allowed) return [];
-    const where = ['t.user_id = $1']; const params: unknown[] = [user.id];
-    const q = str(query.q, 200);
-    if (q) {
-      params.push(`%${q.replace(/[\\%_]/g, m => '\\' + m)}%`);
-      where.push(h.fullTextSearch
-        ? `(t.title ILIKE $${params.length} OR EXISTS (SELECT 1 FROM ai_messages m WHERE m.thread_id = t.id AND m.content ILIKE $${params.length}))`
-        : `t.title ILIKE $${params.length}`);
-    }
-    const space = str(query.space, MAX_SPACE);
-    if (space) { params.push(space); where.push(`t.space = $${params.length}`); }
-    if (query.favorites === 'true') where.push('t.favorite = true');
-    return this.db.query(
-      `SELECT t.id, t.title, t.updated_date, t.pinned, t.favorite, t.space, t.auto_delete_days
-         FROM ai_threads t WHERE ${where.join(' AND ')} ORDER BY t.pinned DESC, t.updated_date DESC LIMIT 200`, params);
+    return (await this.hist.list(user, query)).map(c => this.legacyShape(c));
   }
-
   async spaces(user: AuthUser) {
-    await this.requireHistory(user);
-    return this.db.query(`SELECT space AS name, count(*)::int AS threads FROM ai_threads WHERE user_id = $1 AND space IS NOT NULL GROUP BY space ORDER BY space`, [user.id]);
+    return (await this.hist.spaces(user)).map(sp => ({ name: sp.name, threads: sp.conversations, id: sp.id }));
   }
-
   async thread(user: AuthUser, id: string) {
-    if (!ID_RE.test(id)) throw notFound('Conversation not found.');
-    const h = await this.requireHistory(user);
-    const thread = await this.db.one('SELECT id, title, updated_date, pinned, favorite, space, auto_delete_days FROM ai_threads WHERE id = $1 AND user_id = $2', [id, user.id]);
-    if (!thread) throw notFound('Conversation not found.');
-    const messages = await this.db.query('SELECT id, role, content, sources, contributors, created_date FROM ai_messages WHERE thread_id = $1 ORDER BY id', [id]);
-    return { ...thread, readOnly: h.readOnly, messages };
+    const c = await this.hist.get(user, id);
+    return { ...this.legacyShape(c), readOnly: c.readOnly, messages: c.messages.map(m => ({ id: m.id, role: m.role, content: m.content, sources: m.sources.map(({ url, title, cited }) => ({ url, title, cited })), contributors: [], created_date: m.created_date })) };
   }
-
-  // Rename, pin, favorite, move to a Space, or set auto-delete.
   async updateThread(user: AuthUser, id: string, body: any) {
-    if (!ID_RE.test(id)) throw notFound('Conversation not found.');
-    await this.requireHistory(user, true);
-    const sets: string[] = []; const params: unknown[] = [id, user.id];
-    const put = (col: string, v: unknown) => { params.push(v); sets.push(`${col} = $${params.length}`); };
-    if (body?.title !== undefined) { const t = str(body.title, 120); if (!t) throw badRequest('Give the conversation a name.'); put('title', t); }
-    if (body?.pinned !== undefined) put('pinned', body.pinned === true);
-    if (body?.favorite !== undefined) put('favorite', body.favorite === true);
-    if (body?.space !== undefined) put('space', body.space === null || body.space === '' ? null : str(body.space, MAX_SPACE) || null);
-    if (body?.autoDeleteDays !== undefined) {
-      const d = body.autoDeleteDays === null ? null : Number(body.autoDeleteDays);
-      if (d !== null && !AUTO_DELETE_DAYS.includes(d)) throw badRequest('Auto-delete can be 30, 90 or 365 days, or never.');
-      put('auto_delete_days', d);
+    const patch: any = { ...body };
+    if (body?.space !== undefined) {   // older clients send a Space by name
+      const name = body.space === null || body.space === '' ? null : str(body.space, 60);
+      if (!name) patch.spaceId = null;
+      else {
+        const existing = (await this.hist.spaces(user)).find(sp => sp.name.toLowerCase() === name.toLowerCase());
+        patch.spaceId = existing?.id ?? (await this.hist.createSpace(user, name)).id;
+      }
     }
-    if (!sets.length) throw badRequest('Nothing to change.');
-    const row = await this.db.one(`UPDATE ai_threads SET ${sets.join(', ')} WHERE id = $1 AND user_id = $2
-      RETURNING id, title, updated_date, pinned, favorite, space, auto_delete_days`, params);
-    if (!row) throw notFound('Conversation not found.');
-    return row;
+    return this.legacyShape(await this.hist.update(user, id, patch));
   }
-
-  // Everything this person saved, as JSON (plans with export; read-only users may export too).
-  async exportThreads(user: AuthUser) {
-    const h = await this.requireHistory(user);
-    if (!h.bulkExport && !h.readOnly) throw forbidden('Export comes with the Pro, Max and Business plans.');
-    const threads = await this.db.query('SELECT id, title, created_date, updated_date, pinned, favorite, space FROM ai_threads WHERE user_id = $1 ORDER BY created_date', [user.id]);
-    const messages = await this.db.query(
-      `SELECT m.thread_id, m.role, m.content, m.sources, m.created_date FROM ai_messages m JOIN ai_threads t ON t.id = m.thread_id
-        WHERE t.user_id = $1 ORDER BY m.thread_id, m.id`, [user.id]);
-    const byThread = new Map<string, any[]>();
-    for (const m of messages) { const list = byThread.get(m.thread_id) ?? []; list.push(m); byThread.set(m.thread_id, list); }
-    return { exported_at: new Date().toISOString(), threads: threads.map(t => ({ ...t, messages: (byThread.get(t.id) ?? []).map(({ thread_id, ...m }) => m) })) };
-  }
-
-  // Deleting is always allowed: it's the person's own data, whatever their plan.
-  async deleteThread(user: AuthUser, id: string) {
-    if (!ID_RE.test(id)) throw notFound('Conversation not found.');
-    const rows = await this.db.query('DELETE FROM ai_threads WHERE id = $1 AND user_id = $2 RETURNING id', [id, user.id]);
-    if (!rows.length) throw notFound('Conversation not found.');
-    return { deleted: true };
-  }
+  async exportThreads(user: AuthUser) { return this.hist.exportAll(user); }
+  async deleteThread(user: AuthUser, id: string) { await this.hist.remove(user, id); return { deleted: true }; }
 
   // ---------- Business seats (owner only) ----------
 
@@ -499,14 +398,16 @@ export class AiSearchService implements OnModuleInit, OnModuleDestroy {
       `INSERT INTO ai_seats(subscription_id, email, user_id) VALUES ($1, $2, $3) ON CONFLICT (subscription_id, email) DO NOTHING RETURNING id`,
       [sub.id, email, existing?.id ?? null]);
     if (!row) throw badRequest('That person already has a seat.');
+    if (existing) await this.hist.refreshEntitlements(existing.id);
     return this.team(user);
   }
 
   async removeMember(user: AuthUser, seatId: string) {
     const sub = await this.ownedBusiness(user);
     if (!ID_RE.test(seatId)) throw notFound('Seat not found.');
-    const rows = await this.db.query(`DELETE FROM ai_seats WHERE id = $1 AND subscription_id = $2 AND role <> 'owner' RETURNING id`, [seatId, sub.id]);
+    const rows = await this.db.query(`DELETE FROM ai_seats WHERE id = $1 AND subscription_id = $2 AND role <> 'owner' RETURNING id, user_id`, [seatId, sub.id]);
     if (!rows.length) throw badRequest('That seat cannot be removed.');
+    if (rows[0].user_id) await this.hist.refreshEntitlements(rows[0].user_id);
     return this.team(user);
   }
 }

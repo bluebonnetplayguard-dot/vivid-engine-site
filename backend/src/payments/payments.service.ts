@@ -5,6 +5,7 @@ import { config } from '../config';
 import { Db } from '../db';
 import { EntitiesService } from '../entities/entities.service';
 import { ApiError, badRequest, forbidden } from '../errors';
+import { HistoryService } from '../history/history.service';
 import { isEmail, str } from '../shared/guards';
 import { CARD_FEE_RATE, CatalogItem, catalogItems } from '../shared/pricing';
 import { PAID_TIER_IDS, tierById } from '../ai-search/plans';
@@ -47,7 +48,7 @@ export class PaymentsService {
   private readonly log = new Logger('Payments');
   readonly square = new SquareClient();
 
-  constructor(private readonly db: Db, private readonly entities: EntitiesService) {}
+  constructor(private readonly db: Db, private readonly entities: EntitiesService, private readonly history: HistoryService) {}
 
   // Public ids the Web Payments SDK needs. Never the access token.
   publicConfig() {
@@ -212,6 +213,13 @@ export class PaymentsService {
     } else {
       await this.db.query(`UPDATE ${table} SET status = $2, current_period_end = $3, canceled_date = $4, card_id = COALESCE($5, card_id), updated_date = now() WHERE square_subscription_id = $1`,
         [s.id, status, periodEnd, s.canceled_date || null, s.card_id || null]);
+    }
+    // Saved-history entitlements follow the plan: refresh the owner and every seat holder.
+    if (kind === 'ai_search') {
+      const people = await this.db.query<{ id: string }>(
+        `SELECT owner_user_id AS id FROM ai_subscriptions WHERE square_subscription_id = $1
+         UNION SELECT seat.user_id FROM ai_seats seat JOIN ai_subscriptions x ON x.id = seat.subscription_id WHERE x.square_subscription_id = $1 AND seat.user_id IS NOT NULL`, [s.id]);
+      for (const p of people) await this.history.refreshEntitlements(p.id);
     }
     this.log.log(`${kind} subscription ${s.id}: ${status}${s.canceled_date ? ` (ends ${s.canceled_date})` : ''}`);
   }
