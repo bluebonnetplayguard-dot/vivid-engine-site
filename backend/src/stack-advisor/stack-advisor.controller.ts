@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthUser, CurrentUser } from '../auth/guard';
 import { badRequest } from '../errors';
 import { AiSearchService } from '../ai-search/ai-search.service';
+import { PRO_LEVEL_TIER_IDS } from '../ai-search/plans';
 import { SEED } from './seed';
 import { check_edge, check_stack, get_tool, search_tools } from './tools';
 import type { Db as StackDb } from './types';
@@ -10,7 +11,7 @@ import type { Db as StackDb } from './types';
 // /api/stack-advisor/*. Evidence-based answers only: never state that tools work together without evidence.
 // NEUTRALITY: rankings and trust tiers are never for sale. No vendor can pay for a tier, placement or score.
 // Data: development SEED (every record flagged mock) until the collectors fill Postgres.
-const STACK_TIERS = ['pro', 'max', 'business'];   // check_stack is a Pro feature (search, get_tool, check_edge are free)
+const STACK_TIERS: string[] = PRO_LEVEL_TIER_IDS;   // check_stack is a paid-plan feature (search, get_tool, check_edge are free)
 const data = (): StackDb => SEED;
 
 export function toolsIn(message: string): string[] {

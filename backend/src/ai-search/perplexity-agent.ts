@@ -16,7 +16,7 @@ const ENDPOINT = 'https://api.perplexity.ai/v1/agent';
 export const agentConfigured = () => !!config.PERPLEXITY_API_KEY;
 
 export interface AgentSource { url: string; title: string; cited: boolean }
-export interface AgentResult { text: string; sources: AgentSource[]; inputTokens: number; outputTokens: number; costUsd: number | null }
+export interface AgentResult { text: string; sources: AgentSource[]; searchQueries: string[]; inputTokens: number; outputTokens: number; costUsd: number | null }
 
 export interface AgentRequest {
   model: string;
@@ -75,6 +75,7 @@ export function parseResponse(response: any): AgentResult {
     if (sources.length < 40) sources.push({ url: url.slice(0, 500), title: String(title || url).slice(0, 200), cited });
   };
   let text = '';
+  const searchQueries: string[] = [];
   for (const item of Array.isArray(response?.output) ? response.output : []) {
     if (item?.type === 'message') {
       for (const part of Array.isArray(item.content) ? item.content : []) {
@@ -83,13 +84,14 @@ export function parseResponse(response: any): AgentResult {
         for (const a of Array.isArray(part.annotations) ? part.annotations : []) if (a?.type === 'url_citation') add(a.url, a.title, true);
       }
     } else if (item?.type === 'search_results') {
+      for (const q of [item?.query, ...(Array.isArray(item?.queries) ? item.queries : [])]) if (typeof q === 'string' && q.trim() && !searchQueries.includes(q.trim())) searchQueries.push(q.trim().slice(0, 200));
       for (const r of Array.isArray(item.results) ? item.results : []) add(r?.url, r?.title, false);
     }
   }
   const usage = response?.usage ?? {};
   const cost = Number(usage?.cost?.total_cost);
   return {
-    text, sources: [...sources.filter(s => s.cited), ...sources.filter(s => !s.cited)],
+    text, sources: [...sources.filter(s => s.cited), ...sources.filter(s => !s.cited)], searchQueries: searchQueries.slice(0, 12),
     inputTokens: Number(usage.input_tokens) || 0, outputTokens: Number(usage.output_tokens) || 0,
     costUsd: Number.isFinite(cost) ? cost : null,
   };
@@ -126,7 +128,7 @@ export async function agentStream(req: AgentRequest, onDelta: (text: string) => 
     while ((split = buffer.indexOf('\n\n')) !== -1) { handle(buffer.slice(0, split)); buffer = buffer.slice(split + 2); }
   }
   if (buffer.trim()) handle(buffer);
-  const result: AgentResult = final ?? { text: streamed, sources: [], inputTokens: 0, outputTokens: 0, costUsd: null };
+  const result: AgentResult = final ?? { text: streamed, sources: [], searchQueries: [], inputTokens: 0, outputTokens: 0, costUsd: null };
   // Deltas are what the visitor saw; keep them as the saved text if the final event differs.
   return { ...result, text: streamed || result.text };
 }

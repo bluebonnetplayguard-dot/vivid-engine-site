@@ -4,11 +4,10 @@ import type { Request, Response } from 'express';
 import { AuthUser, CurrentUser, Public } from '../auth/guard';
 import { AiSearchBilling } from './ai-search.billing';
 import { AiSearchService } from './ai-search.service';
-import { CONTRIBUTOR_LABELS, contributorConfigured } from './contributors';
 import { publicTiers } from './plans';
 
-// /api/ai-search/*. Everything except the plan list requires a signed-in account,
-// which is what lets free questions be limited per person.
+// /api/ai-search/*. The plan list and asking a question are open to visitors (guests get a few quick searches a day,
+// nothing saved); everything else needs a signed-in account.
 @Controller('ai-search')
 export class AiSearchController {
   constructor(private readonly search: AiSearchService, private readonly billing: AiSearchBilling) {}
@@ -17,17 +16,18 @@ export class AiSearchController {
   plans() {
     return {
       tiers: publicTiers(),
-      engines: (Object.keys(CONTRIBUTOR_LABELS) as (keyof typeof CONTRIBUTOR_LABELS)[]).map(id => ({ id, label: CONTRIBUTOR_LABELS[id], available: contributorConfigured(id) })),
+      engines: this.search.engines(),
     };
   }
 
   @Get('me')
   me(@CurrentUser() user: AuthUser) { return this.search.status(user); }
 
-  // Streams the answer as server-sent events: thread, status, contributor, sources, delta, done | error.
-  @Post('ask') @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  ask(@CurrentUser() user: AuthUser, @Body() body: any, @Req() req: Request, @Res() res: Response) {
-    return this.search.ask(user, body, req, res);
+  // Streams the answer as server-sent events: thread | unsaved, routing, status, sources, delta, answer, usage_warning,
+  // followups, done | error. The guard attaches req.user when a valid session is sent, even on a public route.
+  @Public() @Post('ask') @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  ask(@CurrentUser() user: AuthUser | null, @Body() body: any, @Req() req: Request, @Res() res: Response) {
+    return this.search.ask(user ?? null, body, req, res);
   }
 
   @Get('threads')

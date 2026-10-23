@@ -50,20 +50,27 @@ const schema = z.object({
   EXA_API_KEY: z.string().optional(),
   PERPLEXITY_API_KEY: z.string().optional(),
 
-  // Vivid AI Search. Claude (ANTHROPIC_API_KEY) answers; these engines contribute second opinions on
-  // paid tiers. Each is optional: an engine with no key is skipped. PERPLEXITY_API_KEY is shared with pricing research.
+  // Vivid AI Search goes through one router (ai-router/): Perplexity for the live web, Claude for reasoning and
+  // writing, Gemini for pictures and files. Each key is optional; an engine with no key is skipped.
+  // PERPLEXITY_API_KEY is shared with pricing research.
+  // OpenAI is not an AI Search engine. OPENAI_API_KEY and OPENAI_SEARCH_MODEL are used only by Video Studio.
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_SEARCH_MODEL: z.string().default('gpt-5-mini'),
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_SEARCH_MODEL: z.string().default('gemini-4-argon,gemini-3.8-flash'),
   // Perplexity Agent API model ids (provider/model, from docs.perplexity.ai/docs/agent-api/models).
-  // With only PERPLEXITY_API_KEY set, the Gemini and ChatGPT second opinions run through the Agent API
-  // using these models, and if ANTHROPIC_API_KEY is missing or failing, Claude answers through it too.
+  // With only PERPLEXITY_API_KEY set, Gemini answers run through the Agent API using this model, and if
+  // ANTHROPIC_API_KEY is missing or failing, Claude answers through it too.
   PERPLEXITY_SEARCH_MODEL: z.string().default('perplexity/sonar'),
   PPLX_GEMINI_MODEL: z.string().default('google/gemini-3.8-flash'),
-  PPLX_OPENAI_MODEL: z.string().default('openai/gpt-6-luna'),
   // Hard ceiling on estimated AI Search spend per UTC day. When reached, questions pause until midnight UTC.
   AI_SEARCH_DAILY_BUDGET_USD: z.coerce.number().min(0).default(25),
+  // Hard ceiling on what all AI engines may cost us in one UTC month, across every account. 0 = no ceiling.
+  AI_MONTHLY_CAP_USD: z.coerce.number().min(0).default(500),
+  // Each account's monthly allowance is its plan price divided by this, so the price is always at least this multiple of cost.
+  AI_MARGIN_MULTIPLIER: z.coerce.number().min(1).default(2.5),
+  // Questions a visitor who is not signed in may ask per day, per network address (0 switches guest search off).
+  GUEST_QUESTIONS_PER_DAY: z.coerce.number().int().min(0).default(3),
 
   // Vivid Video Studio. Captions and voiceover use OPENAI_API_KEY; script-to-video uses Claude, else OpenAI.
   // Stock footage needs a free Pexels key (pexels.com/api). Each feature is hidden when its key is missing.

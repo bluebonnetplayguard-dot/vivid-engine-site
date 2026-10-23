@@ -26,6 +26,8 @@ import { RateLimiter } from './rate-limit';
 import { AiSearchBilling } from './ai-search/ai-search.billing';
 import { AiSearchController } from './ai-search/ai-search.controller';
 import { AiSearchService } from './ai-search/ai-search.service';
+import { AiRouterController } from './ai-router/ai-router.controller';
+import { AiRouterService } from './ai-router/ai-router.service';
 import { HistoryController } from './history/history.controller';
 import { HistoryService } from './history/history.service';
 import { VideoAi } from './video/video-ai';
@@ -40,11 +42,11 @@ import { StackAdvisorController } from './stack-advisor/stack-advisor.controller
     // Default: 120 requests per minute per IP. Nginx applies a coarser limit in front.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
   ],
-  controllers: [AuthController, EntitiesController, FunctionsController, PaymentsController, SquareWebhookController, MiscController, AiSearchController, HistoryController, VideoController, BuildStudioController, StackAdvisorController],
+  controllers: [AuthController, EntitiesController, FunctionsController, PaymentsController, SquareWebhookController, MiscController, AiSearchController, AiRouterController, HistoryController, VideoController, BuildStudioController, StackAdvisorController],
   providers: [
     Db, Mail, RateLimiter, Realtime, Notifier, AuthService, EntitiesService,
     PaymentsService, AiService, Billing, PortalService, OpsService, PublicClients, MarketResearch, PricingService,
-    HistoryService, AiSearchService, AiSearchBilling,
+    HistoryService, AiRouterService, AiSearchService, AiSearchBilling,
     VideoService, VideoAi, VideoBilling,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
