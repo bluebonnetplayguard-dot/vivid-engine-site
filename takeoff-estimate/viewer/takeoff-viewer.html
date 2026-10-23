@@ -1,0 +1,326 @@
+<title>Vivid Takeoff</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: plan sheet on the left as the work surface, a takeoff rail on the right (stacks below on phones). Single dark Vivid Engine look by choice. */
+:root{
+  --bg:#060a14; --panel:#0c1426; --panel2:#111c36; --line:#20305a; --fg:#eef3ff; --muted:#94a6cc;
+  --accent:#2aa4ff; --ok:#38d39a; --warn:#ffc65c; --bad:#ff7d7d; --paper:#ffffff;
+  --display:"Montserrat",system-ui,sans-serif; --body:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+.wrap{padding-block:14px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:14px;max-width:1500px;margin:0 auto}
+header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:baseline;justify-content:space-between}
+h1{font:800 1.35rem/1.2 var(--display);margin:0;letter-spacing:.01em;text-wrap:balance}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:0;font-size:.9rem}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;align-items:start}
+@media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+button,.file{font:600 .85rem/1 var(--body);color:var(--fg);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer}
+button:hover,.file:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,.file:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#04101f}
+button.primary{background:var(--accent);border-color:var(--accent);color:#04101f}
+.sep{width:1px;height:26px;background:var(--line);margin:0 4px}
+.file input{position:absolute;opacity:0;width:1px;height:1px}
+.stage{position:relative;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#2a3346;max-height:min(78vh,900px);touch-action:pan-x pan-y}
+.stage canvas{display:block}
+#overlay{position:absolute;left:0;top:0;cursor:crosshair}
+.hint{font-size:.85rem;color:var(--muted);margin:8px 2px 0;min-height:1.3em}
+.rail{display:grid;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:8px}
+.card h2{font:700 .72rem/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:.88rem}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 .78rem/1 var(--body);padding:5px 9px;border-radius:999px;border:1px solid}
+.pill.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 50%,transparent)}
+.pill.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 50%,transparent)}
+.pill.off{color:var(--muted);border-color:var(--line)}
+.layer{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px;border-radius:8px;border:1px solid transparent;cursor:pointer}
+.layer[aria-current="true"]{border-color:var(--accent);background:var(--panel2)}
+.sw{width:14px;height:14px;border-radius:3px}
+.layer b{font-weight:600;font-size:.9rem;overflow-wrap:anywhere}
+.layer .q{font-family:var(--mono);font-size:.85rem;font-variant-numeric:tabular-nums}
+label{font-size:.82rem;color:var(--muted);display:grid;gap:4px}
+input,select{font:500 .9rem var(--mono);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.note{font-size:.8rem;color:var(--muted);margin:0}
+.preview{border:1px dashed var(--accent);border-radius:9px;padding:10px;display:grid;gap:8px}
+.preview ul{margin:0;padding-left:18px;font-size:.88rem}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.legal{font-size:.78rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div><h1>Vivid <span>Takeoff</span></h1><p class="sub">Sample plan loaded: backyard fence, sheet C-101. Calibrate the scale, then measure.</p></div>
+    <span class="pill warn" id="sampleTag">Sample data</span>
+  </header>
+  <div class="grid">
+    <section aria-label="Plan sheet">
+      <div class="toolbar" role="toolbar" aria-label="Tools">
+        <button id="t-pan" data-tool="pan" aria-pressed="false">Pan</button>
+        <button id="t-cal" data-tool="calibrate" aria-pressed="false">Calibrate</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button id="t-lin" data-tool="linear" aria-pressed="true">Linear</button>
+        <button id="t-area" data-tool="area" aria-pressed="false">Area</button>
+        <button id="t-cnt" data-tool="count" aria-pressed="false">Count</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button id="b-ortho" aria-pressed="true" title="Keep lines straight across or up and down">Ortho</button>
+        <button id="b-finish">Finish shape</button>
+        <button id="b-undo">Undo point</button>
+        <span class="sep" aria-hidden="true"></span>
+        <button id="b-zout" aria-label="Zoom out">−</button>
+        <button id="b-zin" aria-label="Zoom in">+</button>
+        <label class="file" for="f-pdf">Open your plan (PDF)<input id="f-pdf" type="file" accept="application/pdf"></label>
+      </div>
+      <div class="stage" id="stage"><canvas id="pdf"></canvas><canvas id="overlay"></canvas></div>
+      <p class="hint" id="hint" role="status"></p>
+    </section>
+
+    <aside class="rail" aria-label="Takeoff">
+      <div class="card">
+        <h2>Sheet</h2>
+        <dl class="kv">
+          <dt>Number</dt><dd id="s-num">C-101</dd>
+          <dt>Title</dt><dd id="s-title">Site plan - fence layout</dd>
+          <dt>Printed scale</dt><dd id="s-printed">1/8" = 1'-0"</dd>
+          <dt>Two-point check</dt><dd id="s-cal">-</dd>
+        </dl>
+        <div id="calState"></div>
+        <div class="row">
+          <label for="i-scale">Printed scale<input id="i-scale" value='1/8"=1&apos;-0"'></label>
+          <label for="i-known">Known length (ft)<input id="i-known" type="number" min="0" step="0.01" value="80"></label>
+        </div>
+        <p class="note">Calibrate: pick the two ends of a dimension you know, like the 80'-0" string along the back.</p>
+      </div>
+
+      <div class="card">
+        <h2>Takeoff layers</h2>
+        <div id="layers"></div>
+        <div class="row">
+          <button id="b-addlin">+ Linear layer</button>
+          <button id="b-addcnt">+ Count layer</button>
+        </div>
+      </div>
+
+      <div class="card" id="fenceCard">
+        <h2>Fence assembly</h2>
+        <div class="row">
+          <label for="i-spacing">Max post spacing (ft)<input id="i-spacing" type="number" min="1" step="0.5" value="8"></label>
+          <label for="i-gatew">Gate width (ft)<input id="i-gatew" type="number" min="0" step="0.5" value="4"></label>
+        </div>
+        <dl class="kv" id="fenceOut"></dl>
+        <p class="note">Posts: one at every end and corner, line posts so no bay is longer than the spacing, and one extra per gate. Gate openings are taken out of fence footage.</p>
+      </div>
+
+      <div class="card">
+        <h2>Save to project</h2>
+        <button class="primary" id="b-save">Review changes</button>
+        <div id="pending"></div>
+        <p class="legal">Estimate based on the plans, quantities and assumptions shown. Verify before bidding or ordering. AI-suggested measurements never count until you confirm them.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script>
+const SAMPLE_B64 = "JVBERi0xLjQKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjEgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iagozIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGQgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQ29udGVudHMgOCAwIFIgL01lZGlhQm94IFsgMCAwIDE3MjggMTI5NiBdIC9QYXJlbnQgNyAwIFIgL1Jlc291cmNlcyA8PAovRm9udCAxIDAgUiAvUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXQo+PiAvUm90YXRlIDAgL1RyYW5zIDw8Cgo+PiAKICAvVHlwZSAvUGFnZQo+PgplbmRvYmoKNSAwIG9iago8PAovUGFnZU1vZGUgL1VzZU5vbmUgL1BhZ2VzIDcgMCBSIC9UeXBlIC9DYXRhbG9nCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9BdXRob3IgKGFub255bW91cykgL0NyZWF0aW9uRGF0ZSAoRDoyMDI2MTAyMzE3MzUwOS0wNScwMCcpIC9DcmVhdG9yIChhbm9ueW1vdXMpIC9LZXl3b3JkcyAoKSAvTW9kRGF0ZSAoRDoyMDI2MTAyMzE3MzUwOS0wNScwMCcpIC9Qcm9kdWNlciAoUmVwb3J0TGFiIFBERiBMaWJyYXJ5IC0gXChvcGVuc291cmNlXCkpIAogIC9TdWJqZWN0ICh1bnNwZWNpZmllZCkgL1RpdGxlIChTYW1wbGUgcGxhbiAtIGJhY2t5YXJkIGZlbmNlIFwoVml2aWQgVGFrZW9mZiBkZW1vXCkpIC9UcmFwcGVkIC9GYWxzZQo+PgplbmRvYmoKNyAwIG9iago8PAovQ291bnQgMSAvS2lkcyBbIDQgMCBSIF0gL1R5cGUgL1BhZ2VzCj4+CmVuZG9iago4IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDEwNjcKPj4Kc3RyZWFtCkdhdD0paGYkc3QmOlZyNEVUMk5OO0RYcXAtKDJcPSg6KCdAVWE+XGFDJStyQSkmL0FIW0s1QyZrQTJNS10hWUhvL2E0ODRxN0grMDQ1MSUicm06VHJDNEhCZ0hcVm1KXy0/dV86a0JRUEQ/Ojt0SywlZVwqaEA5QGNqWyctUWoiPFYxNTdYO149UWA2UVJgQXUwYHQtWDBqPEllPHJtQilhTUEkKCkhTStkMFEkcz40PnJdREEiZWk9S2dIYHJlRjRbXjFuJ2gwRTxPPUdQP0lrdGJdYmJFbSc4RFNVOywnXG8scSE+ZzonME9jbmhSMUg9Q0QjOjNrdTdJUjAwPWlnP3MxOEtZdGRETWImWkowJT9zPiMocj9CaGkpIS5mK08/U2VTbjNRb2deLChXTyo/WzMqaEQjdGY1JiQ+L0BuVT1hbkVPUlVpPU5VL0ZkaWM1QWUyYT4vKU4rNEoqQyVNS0FnJm9oKEthMk00ZTg6IycrXnJdIyN0USk7IVQtXV1NJzhjcD08IihnI0I1b3JJX29xYm1sKnVQSzJdJV9BLkNqOCtOclo8LHR1TTBMR1YpSF9uPShlR1tdXCEtPFMxPE5MVHVWO2FFI3RLNU5PMmsuU0ZRZCchLVk9Oi5GPWBPXS5tTW4zQ00qLD87U0xUSDkkMTcsNkk6RTJBNiUsJXMuZStZRnE+TCcxTD4xPTFqWlddOTtOY1snbT8vMk9RZVRYSCxTLiQsZCdVZnBxbyhzVEU6TSo2UUc/cV9hO0RGN0kyLjcmN2ZUZzxQLGdpOyRQZF9AQGslckQmSzZBM0BKQjpROmFDNiRdTGNSZSs2Z1JhWTdHQHRYVU5KdT1QcDs/NTZmYFA2OzYxcjc0YlspNlBacDtBaShRNTlVR0FBXU8jISk2a3I4cGBeJWBKWCMvIiMrQ3NFQThLW1Ija2gsLFo2MksoZ15LbFlYaVVGIUlXWFF1YiQ4MFBPX05gRT41W1NZMj5wNEMtaGVzdUVYMWBbV2oqaGFOWWhUX2haJSFMOjBFOW8tIWZQYyEkSDhRIWZTMyIkMDNVa1tiUz5HXE9VdEtqWygsMUROQGMyMyc2OGc5KVZFRHVFQk1wdEojRGBqcENeOFE1cjU4Kk9uZjVtTzdzL3JvIVJEcShcUiFlWGdCdTYscT9oLFM8UnBLRjRzMVA1NyFmbGNicWxbOiNQNW9xSitNdUlcPldHZCQ5bDU3UkZhWVZYM1dGQCIsVkRgXUlEPGpgQkpOOXE8STlkN0VTdENyaztaRVhfbzFhTyxab1RII0NFVmJdcVY0cjVhPFA6bSkjbkEzLV5HZDEjKC1GRTFpXitMLFltRDkia2w6aWcmXWZkWE9wOnBgR2Q6UmQrYlxAXS9ZaEszUERqWy1RP2ZhbyVwUTooLWBQMScvM34+ZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgOQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwNjEgMDAwMDAgbiAKMDAwMDAwMDEwMiAwMDAwMCBuIAowMDAwMDAwMjA5IDAwMDAwIG4gCjAwMDAwMDAzMjEgMDAwMDAgbiAKMDAwMDAwMDUxNiAwMDAwMCBuIAowMDAwMDAwNTg0IDAwMDAwIG4gCjAwMDAwMDA4ODggMDAwMDAgbiAKMDAwMDAwMDk0NyAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9JRCAKWzw1NzhlNjQ4OGVlYjhlZWNjMTI3YTRmM2UyNjk5MGFkMz48NTc4ZTY0ODhlZWI4ZWVjYzEyN2E0ZjNlMjY5OTBhZDM+XQolIFJlcG9ydExhYiBnZW5lcmF0ZWQgUERGIGRvY3VtZW50IC0tIGRpZ2VzdCAob3BlbnNvdXJjZSkKCi9JbmZvIDYgMCBSCi9Sb290IDUgMCBSCi9TaXplIDkKPj4Kc3RhcnR4cmVmCjIxMDUKJSVFT0YK";
+const $ = id => document.getElementById(id);
+const PT_PER_IN = 72;
+const COLORS = ['#ff8a3d', '#2aa4ff', '#38d39a', '#d26bff', '#ffd15c', '#ff6b9a'];
+
+// ---- measurement math (same rules as takeoff-estimate/src/measure.ts) ----
+function frac(t){ let m=t.match(/^(\d+)-(\d+)\/(\d+)$/); if(m) return +m[1]+ +m[2]/ +m[3]; m=t.match(/^(\d+)\/(\d+)$/); if(m) return +m[1]/ +m[2]; return Number(t); }
+function parseScale(text){
+  const s=String(text).replace(/\s+/g,'').replace(/[“”]/g,'"').replace(/[‘’]/g,"'");
+  let m=s.match(/^(\d+(?:\/\d+)?|\d+-\d+\/\d+)"=1'(?:-0")?$/); if(m) return 1/(frac(m[1])*PT_PER_IN);
+  m=s.match(/^1"=(\d+(?:\.\d+)?)'$/); if(m) return Number(m[1])/PT_PER_IN;
+  m=s.match(/^1:(\d+(?:\.\d+)?)$/); if(m) return Number(m[1])/(12*PT_PER_IN);
+  return null;
+}
+const dist=(a,b)=>Math.hypot(b[0]-a[0],b[1]-a[1]);
+const pathLen=p=>p.slice(1).reduce((s,q,i)=>s+dist(p[i],q),0);
+const shoelace=p=>Math.abs(p.reduce((s,a,i)=>{const b=p[(i+1)%p.length];return s+a[0]*b[1]-b[0]*a[1];},0))/2;
+function fencePosts(paths, k, maxSp, gates){
+  const segs=[]; let terminals=0;
+  for(const p of paths){ for(let i=1;i<p.length;i++) segs.push(dist(p[i-1],p[i])*k); if(p.length>1) terminals+=p.length; }
+  const line=segs.reduce((s,L)=>s+Math.max(0,Math.ceil(L/maxSp-1e-9)-1),0);
+  return {run:segs.reduce((a,b)=>a+b,0), terminals, line, gates, posts:terminals+line+gates};
+}
+const ftIn=ft=>{let i=Math.round(ft*12);const f=Math.floor(i/12);i-=f*12;return `${f}'-${i}"`;};
+const fmt=(n,d=1)=>n.toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+// ---- state ----
+const S={ tool:'linear', ortho:true, zoom:1, page:null, viewport:null,
+  printedK: parseScale('1/8"=1\'-0"'), calK:null, calPts:[], draft:[],
+  layers:[], active:0, pending:null };
+const k=()=>S.calK ?? S.printedK;
+
+function addLayer(name, kind, extra={}){ S.layers.push({name, kind, color:COLORS[S.layers.length%COLORS.length], shapes:[], ...extra}); S.active=S.layers.length-1; renderRail(); }
+
+// ---- PDF ----
+let pdfDoc=null;
+async function loadPdf(bytes){
+  pdfDoc = await pdfjsLib.getDocument({data:bytes}).promise;
+  S.page = await pdfDoc.getPage(1);
+  await readTitleBlock();
+  fit(); 
+}
+async function readTitleBlock(){
+  try{
+    const tc=await S.page.getTextContent(); const text=tc.items.map(i=>i.str).join(' ');
+    const sc=text.match(/(\d+(?:-\d+)?(?:\/\d+)?)\s*"\s*=\s*1\s*'\s*-\s*0\s*"/) || text.match(/1\s*"\s*=\s*\d+\s*'/);
+    if(sc){ const val=sc[0].replace(/\s+/g,''); $('i-scale').value=val; $('s-printed').textContent=val.replace('=',' = '); S.printedK=parseScale(val); }
+    const nums=text.match(/\b[A-Z]{1,2}-\d{3}\b/g);
+    if(nums) $('s-num').textContent=nums[nums.length-1];
+  }catch{ /* title block unreadable: user enters it */ }
+}
+function fit(){
+  const stage=$('stage'); const base=S.page.getViewport({scale:1});
+  const s=Math.max(.2,(stage.clientWidth-2)/base.width)*S.zoom;
+  S.viewport=S.page.getViewport({scale:s});
+  const c=$('pdf'), o=$('overlay'), dpr=Math.min(window.devicePixelRatio||1,2);
+  for(const cv of [c,o]){ cv.width=Math.floor(S.viewport.width*dpr); cv.height=Math.floor(S.viewport.height*dpr); cv.style.width=S.viewport.width+'px'; cv.style.height=S.viewport.height+'px'; }
+  const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  S.page.render({canvasContext:ctx, viewport:S.viewport}).promise.then(draw);
+}
+const toView=p=>S.viewport.convertToViewportPoint(p[0],p[1]);
+function toPdf(ev){ const r=$('overlay').getBoundingClientRect(); return S.viewport.convertToPdfPoint(ev.clientX-r.left, ev.clientY-r.top); }
+
+// ---- drawing ----
+function draw(){
+  const o=$('overlay'), dpr=o.width/parseFloat(o.style.width), g=o.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,o.width,o.height);
+  const line=(pts,color,w=4,dash=[])=>{ if(pts.length<2) return; g.save(); g.strokeStyle=color; g.lineWidth=w; g.setLineDash(dash); g.lineJoin='round'; g.globalAlpha=.85; g.beginPath(); pts.map(toView).forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y)); g.stroke(); g.restore(); };
+  const dot=(p,color,r=6)=>{ const [x,y]=toView(p); g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fillStyle=color; g.fill(); g.lineWidth=2; g.strokeStyle='#04101f'; g.stroke(); };
+  S.layers.forEach(L=>{
+    L.shapes.forEach(sh=>{
+      if(L.kind==='linear'){ line(sh,L.color); }
+      if(L.kind==='area'){ if(sh.length>2){ g.save(); g.fillStyle=L.color; g.globalAlpha=.25; g.beginPath(); sh.map(toView).forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y)); g.closePath(); g.fill(); g.restore(); line([...sh,sh[0]],L.color,3); } }
+      if(L.kind==='count'){ dot(sh[0],L.color,8); }
+    });
+    if(L.kind==='linear' && L.fence) postMarks(L).forEach(p=>dot(p,'#ffffff',3.5));
+  });
+  if(S.draft.length){ const L=S.layers[S.active]; line(S.draft, L?.color||'#fff', 3, [8,6]); S.draft.forEach(p=>dot(p,L?.color||'#fff',4)); }
+  if(S.calPts.length){ line(S.calPts,'#ffc65c',2,[4,4]); S.calPts.forEach(p=>dot(p,'#ffc65c',5)); }
+}
+// Where posts land along each fence run, for display.
+function postMarks(L){
+  const sp=Number($('i-spacing').value)||8, out=[]; 
+  L.shapes.forEach(p=>{ out.push(p[0]); for(let i=1;i<p.length;i++){ const a=p[i-1],b=p[i],len=dist(a,b)*k(),n=Math.ceil(len/sp-1e-9); for(let j=1;j<n;j++){ const t=j/n; out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]); } out.push(b); } });
+  return out;
+}
+
+// ---- input ----
+function snap(p){ if(!S.ortho||!S.draft.length) return p; const a=S.draft[S.draft.length-1]; return Math.abs(p[0]-a[0])>Math.abs(p[1]-a[1])?[p[0],a[1]]:[a[0],p[1]]; }
+$('overlay').addEventListener('click',ev=>{
+  if(S.tool==='pan') return;
+  let p=toPdf(ev);
+  if(S.tool==='calibrate'){
+    S.calPts.push(p); if(S.calPts.length===2){ applyCalibration(); } else hint('Now click the other end of the known dimension.'); draw(); return;
+  }
+  const L=S.layers[S.active]; if(!L){ hint('Add a layer first.'); return; }
+  if(S.tool==='count'){ if(L.kind!=='count'){ hint('Pick a count layer to place counts.'); return; } L.shapes.push([p]); renderRail(); draw(); return; }
+  if(L.kind!==S.tool){ hint(`The selected layer is a ${L.kind} layer. Pick a ${S.tool} layer or add one.`); return; }
+  p=snap(p); S.draft.push(p); draw(); hint(`${S.draft.length} point${S.draft.length>1?'s':''}. Click Finish shape when done.`);
+});
+function finish(){
+  const L=S.layers[S.active];
+  if(L && S.draft.length>=(L.kind==='area'?3:2)){ L.shapes.push(S.draft); S.draft=[]; renderRail(); draw(); hint('Added. Keep measuring, or pick another tool.'); }
+}
+$('b-finish').onclick=finish;
+$('overlay').addEventListener('dblclick',finish);
+$('b-undo').onclick=()=>{ if(S.draft.length){ S.draft.pop(); draw(); } else if(S.calPts.length){ S.calPts.pop(); draw(); } };
+document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+function setTool(t){ S.tool=t; S.draft=[]; if(t==='calibrate') S.calPts=[];
+  document.querySelectorAll('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tool===t)));
+  $('overlay').style.pointerEvents = t==='pan' ? 'none' : 'auto';
+  hint({pan:'Drag the sheet to move around.',calibrate:'Click one end of a dimension you know.',linear:'Click points along the run.',area:'Click around the outline.',count:'Click each item to count it.'}[t]); draw(); }
+$('b-ortho').onclick=e=>{ S.ortho=!S.ortho; e.currentTarget.setAttribute('aria-pressed',String(S.ortho)); };
+$('b-zin').onclick=()=>{ S.zoom=Math.min(6,S.zoom*1.4); fit(); };
+$('b-zout').onclick=()=>{ S.zoom=Math.max(.5,S.zoom/1.4); fit(); };
+$('i-scale').onchange=()=>{ const v=parseScale($('i-scale').value); if(v){ S.printedK=v; $('s-printed').textContent=$('i-scale').value.replace('=',' = '); if(S.calPts.length===2) applyCalibration(); else renderRail(); } else hint('Use a scale like 1/4"=1\'-0", 1"=20\' or 1:100.'); };
+$('i-known').onchange=()=>{ if(S.calPts.length===2) applyCalibration(); };
+['i-spacing','i-gatew'].forEach(id=>$(id).oninput=()=>{ renderRail(); draw(); });
+$('f-pdf').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; const buf=new Uint8Array(await f.arrayBuffer());
+  S.layers=[]; S.calK=null; S.calPts=[]; S.draft=[]; S.pending=null; $('sampleTag').textContent='Your plan (stays in this browser)'; $('s-num').textContent='-'; $('s-title').textContent=f.name;
+  await loadPdf(buf); addLayer('Linear 1','linear'); setTool('calibrate'); };
+// Pan: drag the sheet to scroll it.
+(()=>{ const st=$('stage'); let d=null; st.addEventListener('pointerdown',e=>{ if(S.tool!=='pan') return; d={x:e.clientX,y:e.clientY,l:st.scrollLeft,t:st.scrollTop}; st.setPointerCapture(e.pointerId); }); st.addEventListener('pointermove',e=>{ if(!d) return; st.scrollLeft=d.l-(e.clientX-d.x); st.scrollTop=d.t-(e.clientY-d.y); }); st.addEventListener('pointerup',()=>{ d=null; }); })();
+function hint(t){ $('hint').textContent=t||''; }
+
+function applyCalibration(){
+  const known=Number($('i-known').value); const pts=dist(S.calPts[0],S.calPts[1]);
+  if(!(known>0)||pts<1){ hint('Enter the real length and pick two points apart.'); return; }
+  S.calK=known/pts;
+  const mis=S.printedK? Math.abs(S.calK-S.printedK)/S.printedK*100 : null;
+  S.calMismatch=mis; renderRail(); draw();
+  hint(mis==null?'Calibrated.': mis>1?`The printed scale and your two points disagree by ${fmt(mis,1)}%. Re-pick the points or check the print.`:`Printed scale confirmed within ${fmt(mis,2)}%.`);
+  setTool('linear');
+}
+
+// ---- rail ----
+function qty(L){
+  const kk=k();
+  if(L.kind==='linear') return {v:L.shapes.reduce((s,p)=>s+pathLen(p),0)*kk, u:'LF'};
+  if(L.kind==='area') return {v:L.shapes.reduce((s,p)=>s+shoelace(p),0)*kk*kk, u:'SF'};
+  return {v:L.shapes.length, u:'EA'};
+}
+function renderRail(){
+  const ly=$('layers'); ly.innerHTML='';
+  S.layers.forEach((L,i)=>{ const q=qty(L); const d=document.createElement('div'); d.className='layer'; d.setAttribute('role','button'); d.tabIndex=0; d.setAttribute('aria-current',String(i===S.active));
+    d.innerHTML=`<span class="sw" style="background:${L.color}"></span><b></b><span class="q">${L.kind==='count'?q.v:fmt(q.v)} ${q.u}</span>`; d.querySelector('b').textContent=L.name;
+    d.onclick=d.onkeydown=e=>{ if(e.type==='keydown'&&e.key!=='Enter'&&e.key!==' ') return; e.preventDefault?.(); S.active=i; S.draft=[]; if(L.kind!=='count'&&S.tool!=='pan'&&S.tool!=='calibrate') setTool(L.kind); if(L.kind==='count'&&S.tool!=='pan') setTool('count'); renderRail(); };
+    ly.appendChild(d); });
+  // calibration
+  $('s-cal').textContent = S.calK ? `1 in = ${fmt(S.calK*PT_PER_IN,2)} ft` : 'not done';
+  const cs=$('calState');
+  cs.innerHTML = !S.calK ? '<span class="pill off">Using printed scale only</span>' : S.calMismatch>1 ? `<span class="pill warn">Mismatch ${fmt(S.calMismatch,1)}%: check before using</span>` : `<span class="pill ok">Printed scale confirmed (${fmt(S.calMismatch??0,2)}% off)</span>`;
+  // fence
+  const fence=S.layers.find(L=>L.fence), gate=S.layers.find(L=>L.gate);
+  const out=$('fenceOut');
+  if(fence){ const sp=Number($('i-spacing').value)||8, gates=gate?gate.shapes.length:0, gw=Number($('i-gatew').value)||0;
+    const r=fencePosts(fence.shapes,k(),sp,gates); const net=Math.max(0,r.run-gates*gw);
+    out.innerHTML=`<dt>Fence run</dt><dd>${fmt(r.run)} LF</dd><dt>Less gates (${gates} × ${gw} ft)</dt><dd>−${fmt(gates*gw)} LF</dd><dt><b>Fence to order</b></dt><dd><b>${fmt(net)} LF</b></dd><dt>End and corner posts</dt><dd>${r.terminals}</dd><dt>Line posts</dt><dd>${r.line}</dd><dt>Extra gate posts</dt><dd>${r.gates}</dd><dt><b>Posts total</b></dt><dd><b>${r.posts}</b></dd>`;
+  } else out.innerHTML='<dt>No fence layer</dt><dd>-</dd>';
+}
+
+$('b-addlin').onclick=()=>{ addLayer(`Linear ${S.layers.filter(l=>l.kind==='linear').length+1}`,'linear'); setTool('linear'); };
+$('b-addcnt').onclick=()=>{ addLayer(`Count ${S.layers.filter(l=>l.kind==='count').length+1}`,'count'); setTool('count'); };
+
+// ---- approval gate preview (nothing is saved until approved) ----
+$('b-save').onclick=()=>{
+  const lines=S.layers.filter(L=>L.shapes.length).map(L=>{ const q=qty(L); return `Create takeoff "${L.name}": ${L.kind==='count'?q.v:fmt(q.v)} ${q.u}`; });
+  const box=$('pending');
+  if(!lines.length){ box.innerHTML='<p class="note">Nothing measured yet.</p>'; return; }
+  box.innerHTML=`<div class="preview"><b>Create ${lines.length} takeoff${lines.length>1?'s':''} in "Backyard fence (sample)"</b><ul>${lines.map(l=>`<li></li>`).join('')}</ul><div class="acts"><button class="primary" id="b-approve">Approve</button><button id="b-reject">Discard</button></div></div>`;
+  box.querySelectorAll('li').forEach((li,i)=>li.textContent=lines[i]);
+  $('b-approve').onclick=()=>{ box.innerHTML=`<span class="pill ok">Approved. In the app this writes ${lines.length} takeoff${lines.length>1?'s':''} and an audit entry.</span>`; };
+  $('b-reject').onclick=()=>{ box.innerHTML='<span class="pill off">Discarded. Nothing was saved.</span>'; };
+};
+
+// ---- sample: calibrate on the 80'-0" string, fence run and gate already measured ----
+(async function start(){
+  const bytes=Uint8Array.from(atob(SAMPLE_B64),c=>c.charCodeAt(0));
+  await loadPdf(bytes);
+  const FT=9, X0=200, Y0=100;
+  S.calPts=[[X0,Y0-30],[X0+80*FT,Y0-30]];   // ends of the 80'-0" dimension line
+  addLayer('Fence - 6 ft cedar privacy','linear',{fence:true});
+  S.layers[0].shapes.push([[X0,Y0+120*FT],[X0,Y0],[X0+80*FT,Y0],[X0+80*FT,Y0+120*FT]]);
+  addLayer('Gates - 4 ft','count',{gate:true});
+  S.layers[1].shapes.push([[X0+40*FT,Y0]]);
+  S.active=0;
+  applyCalibration();
+  hint('Sample ready: scale checked on the 80\'-0" dimension, fence run and gate measured. Try adding your own runs.');
+  window.addEventListener('resize',()=>{ clearTimeout(window._rt); window._rt=setTimeout(fit,150); });
+})().catch(e=>hint('The plan could not be opened: '+e.message));
+</script>

@@ -1,0 +1,1 @@
+{"name":"vivid-takeoff-estimate","private":true,"type":"module","scripts":{"test":"node --experimental-strip-types --test test/*.test.ts","demo":"node --experimental-strip-types src/demo.ts"}}
