@@ -5,6 +5,7 @@ import { api } from '@/api/client';
 import BuildViewer from './BuildViewer';
 import './build.css';
 
+const NONE = [];
 const FAULT_LABEL = { collision: 'Clashes', 'unit-sanity': 'Size checks', defect: 'Defects', tolerance: 'Tolerances', constraint: 'Constraints' };
 
 // One Build Studio answer in the chat: what was built, checks, 3D view, approval, drawings.
@@ -43,7 +44,7 @@ export default function BuildCard({ m, pending, canUndo, onApply, onDiscard, onU
     <p className="vb-notice"><AlertTriangle size={15} aria-hidden="true" />{r.notice}</p>
 
     {r.changes?.length > 0 && <div className={`vb-changes${pending ? ' is-pending' : ''}`}>
-      <b>{pending ? 'Proposed changes' : 'What changed'}</b>
+      <b>{pending ? 'Proposed changes' : m.discarded ? 'Discarded (not applied)' : m.undone ? 'Undone' : 'What changed'}</b>
       <ul>{r.changes.map(c => <li key={c}>{c}</li>)}</ul>
       {pending && <div className="vb-approve">
         <button type="button" className="vb-btn is-primary" onClick={onApply}><Check size={15} aria-hidden="true" />Apply changes</button>
@@ -51,7 +52,7 @@ export default function BuildCard({ m, pending, canUndo, onApply, onDiscard, onU
       </div>}
     </div>}
 
-    <BuildViewer viewer={r.viewer} highlight={scene ? r.validation.scenes[scene] || [] : []} />
+    <BuildViewer viewer={r.viewer} highlight={scene ? r.validation.scenes[scene] || NONE : NONE} />
 
     <div className="vb-row">
       <div className="vb-summary"><Boxes size={15} aria-hidden="true" /><span>{r.summary?.join(' · ')}</span></div>
@@ -66,12 +67,12 @@ export default function BuildCard({ m, pending, canUndo, onApply, onDiscard, onU
       </div>)}
     </div>}
 
-    <div className="vh-acts vb-acts">
+    {m.discarded ? <p className="vb-note">This proposal was discarded, so drawings aren’t offered for it.</p> : <div className="vh-acts vb-acts">
       <button type="button" onClick={() => download('1/4"=1\'-0"')} disabled={!!downloading}><Download size={15} aria-hidden="true" />{downloading.includes('1/4') ? 'Making PDF…' : 'Drawings 1/4"=1\'-0" (PDF)'}</button>
       <button type="button" onClick={() => download('1/2"=1\'-0"')} disabled={!!downloading}><Ruler size={15} aria-hidden="true" />{downloading.includes('1/2') ? 'Making PDF…' : '1/2"=1\'-0"'}</button>
       {canUndo && !pending && <button type="button" onClick={onUndo}><Undo2 size={15} aria-hidden="true" />Undo last change</button>}
       <Link className="is-quiet" to="/#inquiry">Have us draft it</Link>
-    </div>
+    </div>}
     {error && <p className="ais-error" role="alert">{error}</p>}
     <p className="vb-note">Print drawings at 100% / Actual Size and check the 1-inch square with a ruler. Sizes are preliminary estimates, not engineering.</p>
   </div>;

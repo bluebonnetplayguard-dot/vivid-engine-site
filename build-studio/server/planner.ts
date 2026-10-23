@@ -8,11 +8,14 @@ const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = process.env.BUILD_STUDIO_MODEL || 'claude-sonnet-5-5';
 const GEOMETRY = process.env.GEOMETRY_SERVICE_URL || 'http://geometry:8090';
 const SCHEMA_PATH = process.env.BUILD_STUDIO_SCHEMA || join(__dirname, 'model-spec.schema.json');
+let SCHEMA_CACHE: string | null = null;   // read once; needs nest-cli.json "assets": ["**/*.json"] so dist/ has it
+const schemaText = () => (SCHEMA_CACHE ??= readFileSync(SCHEMA_PATH, 'utf8'));
 
 export interface BuildTurnInput {
   message: string;
   currentSpec?: Record<string, unknown> | null; // the model on screen, when this is a follow-up
   history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  beforePlanner?: () => Promise<void>;   // e.g. credit check, run only when the AI planner is needed
 }
 
 export interface PlannerOutput {
@@ -74,7 +77,7 @@ async function callClaude(messages: Array<{ role: string; content: unknown }>): 
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 8000,
-      system: SYSTEM(readFileSync(SCHEMA_PATH, 'utf8')),
+      system: SYSTEM(schemaText()),
       tools: [TOOL],
       tool_choice: { type: 'tool', name: TOOL.name },
       messages,
@@ -108,11 +111,20 @@ export async function buildTurn(input: BuildTurnInput): Promise<BuildResult> {
     ? `Current Model Spec:\n${JSON.stringify(previous_spec)}\n\nChange requested: ${input.message}`
     : input.message;
   const messages: Array<{ role: string; content: unknown }> = [...(input.history || []).slice(-6), { role: 'user', content: userContent }];
+  await input.beforePlanner?.();
   let plan = await callClaude(messages);
   if (plan.question) return { reply: plan.reply, question: plan.question, usedPlanner: true };
 
   for (let attempt = 0; attempt < 2; attempt++) {
-    const res = await geometry('/chat/build', { message: input.message, spec: plan.spec, template: plan.template, params: plan.params, previous_spec });
+    if (plan.question) return { reply: plan.reply, question: plan.question, usedPlanner: true };
+    if (!plan.spec && !plan.template) {   // never let the geometry service re-parse the message into a fresh default model
+      if (attempt === 1) break;
+      messages.push({ role: 'assistant', content: [{ type: 'text', text: JSON.stringify(plan) }] });
+      messages.push({ role: 'user', content: 'Return either a template with ALL params, or a full spec, or a question.' });
+      plan = await callClaude(messages);
+      continue;
+    }
+    const res = await geometry('/chat/build', { message: '', spec: plan.spec, template: plan.template, params: plan.params, previous_spec });
     if (res.status === 200) return { reply: plan.reply, usedPlanner: true, ...res.data };
     if (attempt === 1) break;
     // Repair: show the planner exactly what the engine rejected.

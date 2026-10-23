@@ -6,7 +6,10 @@ import { SAFE_KEY } from '@/components/shell/AppShell';
 
 const readSafe = () => { try { return localStorage.getItem(SAFE_KEY) || 'standard'; } catch { return 'standard'; } };
 // Search requests that are really asking for a design go to Build Studio.
-export const BUILD_INTENT = /\b(design|draw|model|plan|build me|drafting|blueprints?|framing)\b[^.?!]{0,60}\b(decks?|pergolas?|sheds?|fences?|carports?|stairs?|trusse?s?|cabinets?|walls?|beams?|swing sets?|playground)\b/i;
+const HAS_SIZE = /\d+\s*(?:'|ft|feet|in|")?\s*(?:x|×|by)\s*\d+/i;
+const BUILD_WORDS = /\b(design|draw|drafting|blueprints?|framing|build me)\b[^.?!]{0,60}\b(decks?|pergolas?|sheds?|fences?|carports?|trusse?s?|swing sets?)\b/i;
+// Needs a build word AND a size, so ordinary questions ("design ideas for walls") stay in Search.
+export const BUILD_INTENT = { test: q => BUILD_WORDS.test(q) && HAS_SIZE.test(q) };
 
 // One AI Search conversation on the home page: ask, stream, follow up, reset, reopen a saved thread.
 export default function useAskThread(account) {
@@ -23,6 +26,7 @@ export default function useAskThread(account) {
   // Build Studio: the applied model, earlier versions for undo. Changes wait for approval before they apply.
   const [buildSpec, setBuildSpec] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
+  const buildGen = useRef(0);   // bumped on reset so a late reply can't revive an old model
 
   const patchLast = fn => setMessages(list => list.map((m, i) => (i === list.length - 1 ? { ...m, ...fn(m) } : m)));
 
@@ -30,37 +34,46 @@ export default function useAskThread(account) {
 
   const askBuild = useCallback(async question => {
     setBusy(true);
+    const gen = buildGen.current;
+    const idx = messages.length + 1;   // the assistant card appended below
+    const patch = fn => { if (gen === buildGen.current) patchAt(idx, fn); };
     setMessages(list => [...list, { role: 'user', content: question }, { role: 'assistant', kind: 'build', status: buildSpec ? 'Working out the changes…' : 'Planning the model…', question }]);
     try {
       const history = messages.filter(m => m.role === 'user').slice(-4).map(m => ({ role: 'user', content: m.content }));
       const result = await api.buildStudio.turn({ message: question, spec: buildSpec, history });
-      if (!result?.viewer) { patchLast(() => ({ status: '', result })); return; }
-      if (!buildSpec) { setBuildSpec(result.spec); patchLast(() => ({ status: '', result, applied: true })); }
-      else patchLast(() => ({ status: '', result, pending: true }));
+      if (gen !== buildGen.current) return;
+      if (!result?.viewer) { patch(() => ({ status: '', result })); return; }
+      if (!buildSpec) { setBuildSpec(result.spec); patch(() => ({ status: '', result, applied: true })); }
+      else patch(() => ({ status: '', result, pending: true }));
     } catch (e) {
-      patchLast(() => ({ status: '', error: { message: e?.status === 404 ? 'Build Studio isn’t switched on for this site yet.' : (e?.message || 'Something went wrong.'), code: e?.code } }));
+      patch(() => ({ status: '', error: { message: e?.status === 404 ? 'Build Studio isn’t switched on for this site yet.' : (e?.message || 'Something went wrong.'), code: e?.code } }));
     } finally {
-      setBusy(false);
+      if (gen === buildGen.current) setBusy(false);
     }
   }, [buildSpec, messages]);
 
   const applyPending = useCallback(index => {
     const m = messages[index];
-    if (!m?.pending) return;
+    if (!m?.pending || busy) return;
     setUndoStack(stack => [...stack, buildSpec]);
     setBuildSpec(m.result.spec);
     setMessages(list => list.map((x, i) => (i === index ? { ...x, pending: false, applied: true } : x.pending ? { ...x, pending: false, discarded: true } : x)));
-  }, [messages, buildSpec]);
+  }, [messages, buildSpec, busy]);
 
-  const discardPending = useCallback(index => patchAt(index, () => ({ pending: false, discarded: true })), []);
+  const discardPending = useCallback(index => { if (!busy) patchAt(index, () => ({ pending: false, discarded: true })); }, [busy]);
 
   const undoBuild = useCallback(() => {
-    if (!undoStack.length) return;
+    if (!undoStack.length || busy) return;
     const prev = undoStack[undoStack.length - 1];
     setUndoStack(stack => stack.slice(0, -1));
     setBuildSpec(prev);
-    setMessages(list => [...list, { role: 'assistant', kind: 'note', content: 'Undone. The model is back to the previous version.' }]);
-  }, [undoStack]);
+    setMessages(list => {
+      let last = -1;
+      list.forEach((m, i) => { if (m.kind === 'build' && m.applied) last = i; });
+      const next = list.map((m, i) => (i === last ? { ...m, applied: false, undone: true } : m));
+      return [...next, { role: 'assistant', kind: 'note', content: 'Undone. The model is back to the previous version.' }];
+    });
+  }, [undoStack, busy]);
 
   const ask = useCallback(async raw => {
     const question = raw.trim().slice(0, 4000);
@@ -68,7 +81,6 @@ export default function useAskThread(account) {
     // Visitors who aren't signed in sign in first and land back here with the question answered.
     if (!isAuthenticated) { api.auth.redirectToLogin(`/?aiq=${encodeURIComponent(question.slice(0, 1500))}`); return; }
     if (mode === 'build' || (mode === 'search' && BUILD_INTENT.test(question))) {
-      if (mode !== 'build') setMode('build');
       await askBuild(question);
       return;
     }
@@ -99,7 +111,8 @@ export default function useAskThread(account) {
 
   const reset = useCallback(() => {
     if (busy) abortRef.current?.abort();
-    setMessages([]); setThreadId(null); setBuildSpec(null); setUndoStack([]);
+    buildGen.current += 1;
+    setMessages([]); setThreadId(null); setBuildSpec(null); setUndoStack([]); setBusy(false);
   }, [busy]);
 
   const openThread = useCallback(async id => {

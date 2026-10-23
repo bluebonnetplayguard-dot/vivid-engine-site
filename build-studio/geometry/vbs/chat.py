@@ -18,7 +18,14 @@ class NeedsPlanner(Exception):
 def handle_build(message: str = "", spec: dict | None = None, template: str | None = None,
                  params: dict | None = None, previous_spec: dict | None = None) -> dict:
     if spec is None and template:
-        spec = from_template(template, params or {})
+        merged = dict(params or {})
+        if previous_spec and template == "deck":   # a follow-up keeps every size not mentioned
+            pp = previous_spec.get("parameters", {})
+            for new, old in (("width", "deck_width"), ("depth", "deck_depth"), ("height", "deck_height"),
+                             ("joist_spacing", "joist_spacing"), ("beam_setback", "beam_setback")):
+                if old in pp and new not in merged:
+                    merged[new] = pp[old]
+        spec = from_template(template, merged)
     if spec is None:
         hit = quick_parse(message)
         if not hit:
@@ -29,7 +36,7 @@ def handle_build(message: str = "", spec: dict | None = None, template: str | No
     if previous_spec:
         try:
             previous = build(previous_spec)
-        except SpecError:
+        except ValueError:
             previous = None
     report = validators.run(model)
     return {

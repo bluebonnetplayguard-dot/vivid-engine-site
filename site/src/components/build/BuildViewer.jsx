@@ -17,6 +17,8 @@ export default function BuildViewer({ viewer, highlight = [], height = 360 }) {
   const api = useRef(null);
   const [picked, setPicked] = useState(null);
   const [failed, setFailed] = useState(false);
+  const hlRef = useRef(highlight);
+  hlRef.current = highlight;
 
   useEffect(() => {
     let disposed = false;
@@ -56,6 +58,7 @@ export default function BuildViewer({ viewer, highlight = [], height = 360 }) {
       place();
       const resize = () => { const w = el.clientWidth, h = el.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); };
       const ro = new ResizeObserver(resize); ro.observe(el); resize();
+      const applyHighlight = () => { const set = new Set(hlRef.current); meshes.forEach(m => m.material.emissive.setHex(set.has(m.userData.el.id) ? 0x5a1f26 : 0)); };
       let drag = null, moved = false;
       const down = e => { drag = { x: e.clientX, y: e.clientY, th, ph }; moved = false; renderer.domElement.setPointerCapture(e.pointerId); };
       const move = e => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 3) moved = true; th = drag.th - dx * 0.006; ph = drag.ph - dy * 0.006; place(); };
@@ -66,7 +69,7 @@ export default function BuildViewer({ viewer, highlight = [], height = 360 }) {
           mouse.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
           ray.setFromCamera(mouse, camera);
           const hit = ray.intersectObjects(meshes, false)[0];
-          meshes.forEach(m => m.material.emissive.setHex(0));
+          applyHighlight();
           if (hit) { hit.object.material.emissive.setHex(0x0d3a6a); setPicked(hit.object.userData.el); } else setPicked(null);
         }
         drag = null;
@@ -79,11 +82,13 @@ export default function BuildViewer({ viewer, highlight = [], height = 360 }) {
       const loop = () => { renderer.render(scene, camera); raf = requestAnimationFrame(loop); };
       loop();
       api.current = { meshes };
+      applyHighlight();   // re-apply after async load
       cleanup = () => {
         cancelAnimationFrame(raf); ro.disconnect();
         c.removeEventListener('pointerdown', down); c.removeEventListener('pointermove', move); c.removeEventListener('pointerup', up); c.removeEventListener('wheel', wheel);
-        meshes.forEach(m => { m.geometry.dispose(); m.material.dispose(); });
-        renderer.dispose(); c.remove();
+        meshes.forEach(m => { m.children.forEach(ch => ch.geometry?.dispose()); m.geometry.dispose(); m.material.dispose(); });
+        edgeMat.dispose();
+        renderer.dispose(); renderer.forceContextLoss(); c.remove();   // free the WebGL context (browsers cap ~16)
       };
     })();
     return () => { disposed = true; cleanup(); };
