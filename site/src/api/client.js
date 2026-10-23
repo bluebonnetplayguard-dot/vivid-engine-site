@@ -395,5 +395,11 @@ const buildStudio = {
   },
 };
 
-export const api = { auth, entities, functions, analytics, aiSearch, video, buildStudio };
+const stackAdvisor = {
+  // { message } -> { reply, edge?, stack?, results?, question? }  (evidence-based; never states a link without evidence)
+  ask: body => request('POST', '/stack-advisor/ask', { body }),
+  search: (q, filters = {}) => request('GET', `/stack-advisor/search?${new URLSearchParams({ q, ...filters })}`),
+};
+
+export const api = { auth, entities, functions, analytics, aiSearch, video, buildStudio, stackAdvisor };
 export default api;

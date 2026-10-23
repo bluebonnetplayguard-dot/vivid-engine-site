@@ -32,6 +32,23 @@ export default function useAskThread(account) {
 
   const patchAt = (index, fn) => setMessages(list => list.map((m, i) => (i === index ? { ...m, ...fn(m) } : m)));
 
+  // Stack Advisor: one evidence-based answer per question (no streaming, no edits to apply).
+  const askStack = useCallback(async question => {
+    setBusy(true);
+    const gen = buildGen.current;
+    const idx = messages.length + 1;
+    const patch = fn => { if (gen === buildGen.current) patchAt(idx, fn); };
+    setMessages(list => [...list, { role: 'user', content: question }, { role: 'assistant', kind: 'stack', status: 'Checking the evidence…', question }]);
+    try {
+      const result = await api.stackAdvisor.ask({ message: question });
+      patch(() => ({ status: '', result }));
+    } catch (e) {
+      patch(() => ({ status: '', error: { message: e?.status === 404 ? 'Stack Advisor isn’t switched on for this site yet.' : (e?.message || 'Something went wrong.'), code: e?.code } }));
+    } finally {
+      if (gen === buildGen.current) setBusy(false);
+    }
+  }, [messages]);
+
   const askBuild = useCallback(async question => {
     setBusy(true);
     const gen = buildGen.current;
@@ -80,6 +97,7 @@ export default function useAskThread(account) {
     if (!question || busy) return;
     // Visitors who aren't signed in sign in first and land back here with the question answered.
     if (!isAuthenticated) { api.auth.redirectToLogin(`/?aiq=${encodeURIComponent(question.slice(0, 1500))}`); return; }
+    if (mode === 'stack') { await askStack(question); return; }
     if (mode === 'build' || (mode === 'search' && BUILD_INTENT.test(question))) {
       await askBuild(question);
       return;
@@ -105,7 +123,7 @@ export default function useAskThread(account) {
       setBusy(false);
       if (access?.allowed && !privateMode) refresh?.();
     }
-  }, [busy, isAuthenticated, threadId, mode, model, privateMode, access?.allowed, refresh, setMe, askBuild]);
+  }, [busy, isAuthenticated, threadId, mode, model, privateMode, access?.allowed, refresh, setMe, askBuild, askStack]);
 
   const stop = () => abortRef.current?.abort();
 

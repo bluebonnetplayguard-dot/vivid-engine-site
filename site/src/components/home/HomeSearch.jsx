@@ -9,12 +9,14 @@ import { api } from '@/api/client';
 import { whatsappUrl } from '@/config/business';
 import { Engines, Sources, SENSITIVE, UPGRADE_CODES, mdLinks, whyThisEngine } from '@/components/aisearch/AnswerParts';
 import BuildCard from '@/components/build/BuildCard';
+import StackCard from '@/components/stack/StackCard';
 import '@/components/aisearch/ai-search.css';
 import './home.css';
 
 const ROTATE = ['Ask anything…', 'How do I fix a leaky faucet?', 'Best family restaurants in Katy?', 'Compare iPhone vs. Galaxy', 'Explain my electric bill', 'Build me a website…'];
-const MODE_PLACEHOLDER = { build: 'Describe what to design: a deck, a website, an app…', create: 'Describe the video or image you want…', biz: 'Ask a question about your business…' };
+const MODE_PLACEHOLDER = { stack: 'Ask about AI tools, e.g. “Do LlamaIndex and Qdrant work together?”', build: 'Describe what to design: a deck, a website, an app…', create: 'Describe the video or image you want…', biz: 'Ask a question about your business…' };
 const MODE_CHIPS = {
+  stack: ['Which open-source vector databases suit a RAG app right now?', 'Do LlamaIndex and Qdrant work together?', 'Is LlamaIndex + Qdrant + Ollama a sound stack?', 'Compare Chroma and Weaviate for a small project'],
   build: ['Design a 12x16 deck 30 inches high', 'Draw a 16x12 deck, joists 12 in o.c.', 'Build me a website for my bakery', 'Plan the pages for a new website'],
   create: ['Write a 30-second promo video script', 'Ideas for a grand opening flyer', 'Write captions for 5 social posts', 'Logo ideas for a coffee truck'],
   biz: ['How do I get on Google Maps?', 'Write a price list for my services', 'Draft a follow-up text to a customer', 'Ideas to get more Google reviews'],
@@ -66,7 +68,7 @@ function Composer({ t, account, compact, placeholder, autoFocus }) {
     <div className="vh-tools">
       {!compact && <>
         <label className={`vh-pick${t.mode !== 'search' ? ' is-on' : ''}`}><Search size={15} aria-hidden="true" /><span className="sr-only">Mode</span>
-          <select value={t.mode} onChange={e => t.setMode(e.target.value)}><option value="search">Search</option><option value="build">Build</option><option value="create">Create</option><option value="biz">Business</option></select>
+          <select value={t.mode} onChange={e => t.setMode(e.target.value)}><option value="search">Search</option><option value="stack">Stack Advisor</option><option value="build">Build</option><option value="create">Create</option><option value="biz">Business</option></select>
         </label>
         <label className="vh-pick" title={MODEL_NOTE[t.model]}><Sparkles size={15} aria-hidden="true" /><span className="sr-only">AI model</span>
           <select value={t.model} onChange={e => t.setModel(e.target.value)}><option value="auto">Auto</option><option value="claude">Claude</option><option value="perplexity">Perplexity</option><option value="gemini">Gemini</option><option value="combined">Combined</option></select>
@@ -181,6 +183,8 @@ export default function HomeSearch({ t, account }) {
     {t.messages.map((m, i) => <div key={i} className="ais-msg">
       {m.role === 'user'
         ? (i === 0 ? <h1 className="vh-q">{m.content}</h1> : <h2 className="vh-q is-follow">{m.content}</h2>)
+        : m.kind === 'stack'
+          ? <StackCard m={m} />
         : m.kind === 'build'
           ? <BuildCard m={m} pending={!!m.pending} canUndo={t.canUndo && m.applied && i === lastApplied} onApply={() => t.applyPending(i)} onDiscard={() => t.discardPending(i)} onUndo={t.undoBuild} />
           : m.kind === 'note'
