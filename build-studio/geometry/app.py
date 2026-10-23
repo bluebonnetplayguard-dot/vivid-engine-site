@@ -17,6 +17,8 @@ from vbs import SpecError, build
 from vbs import validate as validators
 from vbs.drawing import SheetOptions, render_sheet
 from vbs.viewer_export import to_viewer_json
+from vbs.chat import NeedsPlanner, handle_build
+from vbs.templates import TEMPLATES
 
 app = FastAPI(title="Vivid Build Studio geometry", version="0.1.0")
 
@@ -64,6 +66,31 @@ def build_model(body: SpecIn):
 def validate_model(body: SpecIn):
     report = validators.run(_build(body.spec))
     return {"ok": report.ok, "findings": [f.__dict__ for f in report.findings], "scenes": report.scenes()}
+
+
+class ChatBuildIn(BaseModel):
+    """One chat turn in Build mode. The AI planner (NestJS) sends either a full spec or a template + params.
+    With neither, the quick parser reads the message itself (no AI cost)."""
+    message: str = ""
+    spec: dict | None = None
+    template: str | None = None
+    params: dict | None = None
+    previous_spec: dict | None = None   # the model currently on screen, for the before/after summary
+
+
+@app.get("/templates")
+def templates():
+    return TEMPLATES
+
+
+@app.post("/chat/build")
+def chat_build(body: ChatBuildIn):
+    try:
+        return handle_build(body.message, body.spec, body.template, body.params, body.previous_spec)
+    except NeedsPlanner:
+        raise HTTPException(status_code=422, detail="needs_planner")
+    except (ValueError, SpecError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @app.post("/sheet.pdf")

@@ -5,6 +5,8 @@ import { answerEventHandler } from '@/components/aisearch/AnswerParts';
 import { SAFE_KEY } from '@/components/shell/AppShell';
 
 const readSafe = () => { try { return localStorage.getItem(SAFE_KEY) || 'standard'; } catch { return 'standard'; } };
+// Search requests that are really asking for a design go to Build Studio.
+export const BUILD_INTENT = /\b(design|draw|model|plan|build me|drafting|blueprints?|framing)\b[^.?!]{0,60}\b(decks?|pergolas?|sheds?|fences?|carports?|stairs?|trusse?s?|cabinets?|walls?|beams?|swing sets?|playground)\b/i;
 
 // One AI Search conversation on the home page: ask, stream, follow up, reset, reopen a saved thread.
 export default function useAskThread(account) {
@@ -18,14 +20,58 @@ export default function useAskThread(account) {
   const [model, setModel] = useState('auto');
   const abortRef = useRef(null);
   const autoAsked = useRef(false);
+  // Build Studio: the applied model, earlier versions for undo. Changes wait for approval before they apply.
+  const [buildSpec, setBuildSpec] = useState(null);
+  const [undoStack, setUndoStack] = useState([]);
 
   const patchLast = fn => setMessages(list => list.map((m, i) => (i === list.length - 1 ? { ...m, ...fn(m) } : m)));
+
+  const patchAt = (index, fn) => setMessages(list => list.map((m, i) => (i === index ? { ...m, ...fn(m) } : m)));
+
+  const askBuild = useCallback(async question => {
+    setBusy(true);
+    setMessages(list => [...list, { role: 'user', content: question }, { role: 'assistant', kind: 'build', status: buildSpec ? 'Working out the changes…' : 'Planning the model…', question }]);
+    try {
+      const history = messages.filter(m => m.role === 'user').slice(-4).map(m => ({ role: 'user', content: m.content }));
+      const result = await api.buildStudio.turn({ message: question, spec: buildSpec, history });
+      if (!result?.viewer) { patchLast(() => ({ status: '', result })); return; }
+      if (!buildSpec) { setBuildSpec(result.spec); patchLast(() => ({ status: '', result, applied: true })); }
+      else patchLast(() => ({ status: '', result, pending: true }));
+    } catch (e) {
+      patchLast(() => ({ status: '', error: { message: e?.status === 404 ? 'Build Studio isn’t switched on for this site yet.' : (e?.message || 'Something went wrong.'), code: e?.code } }));
+    } finally {
+      setBusy(false);
+    }
+  }, [buildSpec, messages]);
+
+  const applyPending = useCallback(index => {
+    const m = messages[index];
+    if (!m?.pending) return;
+    setUndoStack(stack => [...stack, buildSpec]);
+    setBuildSpec(m.result.spec);
+    setMessages(list => list.map((x, i) => (i === index ? { ...x, pending: false, applied: true } : x.pending ? { ...x, pending: false, discarded: true } : x)));
+  }, [messages, buildSpec]);
+
+  const discardPending = useCallback(index => patchAt(index, () => ({ pending: false, discarded: true })), []);
+
+  const undoBuild = useCallback(() => {
+    if (!undoStack.length) return;
+    const prev = undoStack[undoStack.length - 1];
+    setUndoStack(stack => stack.slice(0, -1));
+    setBuildSpec(prev);
+    setMessages(list => [...list, { role: 'assistant', kind: 'note', content: 'Undone. The model is back to the previous version.' }]);
+  }, [undoStack]);
 
   const ask = useCallback(async raw => {
     const question = raw.trim().slice(0, 4000);
     if (!question || busy) return;
     // Visitors who aren't signed in sign in first and land back here with the question answered.
     if (!isAuthenticated) { api.auth.redirectToLogin(`/?aiq=${encodeURIComponent(question.slice(0, 1500))}`); return; }
+    if (mode === 'build' || (mode === 'search' && BUILD_INTENT.test(question))) {
+      if (mode !== 'build') setMode('build');
+      await askBuild(question);
+      return;
+    }
     setBusy(true);
     setMessages(list => [...list, { role: 'user', content: question }, { role: 'assistant', content: '', status: 'Starting…', engines: [], sources: [], question }]);
     const controller = new AbortController();
@@ -47,13 +93,13 @@ export default function useAskThread(account) {
       setBusy(false);
       if (access?.allowed && !privateMode) refresh?.();
     }
-  }, [busy, isAuthenticated, threadId, mode, model, privateMode, access?.allowed, refresh, setMe]);
+  }, [busy, isAuthenticated, threadId, mode, model, privateMode, access?.allowed, refresh, setMe, askBuild]);
 
   const stop = () => abortRef.current?.abort();
 
   const reset = useCallback(() => {
     if (busy) abortRef.current?.abort();
-    setMessages([]); setThreadId(null);
+    setMessages([]); setThreadId(null); setBuildSpec(null); setUndoStack([]);
   }, [busy]);
 
   const openThread = useCallback(async id => {
@@ -86,5 +132,6 @@ export default function useAskThread(account) {
     return () => window.removeEventListener('beforeunload', warn);
   }, [messages.length, access?.allowed, privateMode]);
 
-  return { messages, threadId, busy, ask, stop, reset, openThread, privateMode, setPrivateMode, mode, setMode, model, setModel };
+  return { messages, threadId, busy, ask, stop, reset, openThread, privateMode, setPrivateMode, mode, setMode, model, setModel,
+    buildSpec, canUndo: undoStack.length > 0, applyPending, discardPending, undoBuild };
 }

@@ -8,13 +8,14 @@ import {
 import { api } from '@/api/client';
 import { whatsappUrl } from '@/config/business';
 import { Engines, Sources, SENSITIVE, UPGRADE_CODES, mdLinks, whyThisEngine } from '@/components/aisearch/AnswerParts';
+import BuildCard from '@/components/build/BuildCard';
 import '@/components/aisearch/ai-search.css';
 import './home.css';
 
 const ROTATE = ['Ask anything…', 'How do I fix a leaky faucet?', 'Best family restaurants in Katy?', 'Compare iPhone vs. Galaxy', 'Explain my electric bill', 'Build me a website…'];
-const MODE_PLACEHOLDER = { build: 'Describe the website or app you want…', create: 'Describe the video or image you want…', biz: 'Ask a question about your business…' };
+const MODE_PLACEHOLDER = { build: 'Describe what to design: a deck, a website, an app…', create: 'Describe the video or image you want…', biz: 'Ask a question about your business…' };
 const MODE_CHIPS = {
-  build: ['Build me a website for my bakery', 'Make a booking app for my shop', 'Add a quote form to my contractor site', 'Plan the pages for a new website'],
+  build: ['Design a 12x16 deck 30 inches high', 'Draw a 16x12 deck, joists 12 in o.c.', 'Build me a website for my bakery', 'Plan the pages for a new website'],
   create: ['Write a 30-second promo video script', 'Ideas for a grand opening flyer', 'Write captions for 5 social posts', 'Logo ideas for a coffee truck'],
   biz: ['How do I get on Google Maps?', 'Write a price list for my services', 'Draft a follow-up text to a customer', 'Ideas to get more Google reviews'],
 };
@@ -129,6 +130,7 @@ export default function HomeSearch({ t, account }) {
   const bottomRef = useRef(null);
   const empty = t.messages.length === 0;
   const answers = t.messages.filter(m => m.role === 'assistant');
+  const lastApplied = t.messages.reduce((acc, m, i) => (m.kind === 'build' && m.applied ? i : acc), -1);
 
   useEffect(() => {
     const id = setInterval(() => setPh(i => (i + 1) % ROTATE.length), 3200);
@@ -179,10 +181,14 @@ export default function HomeSearch({ t, account }) {
     {t.messages.map((m, i) => <div key={i} className="ais-msg">
       {m.role === 'user'
         ? (i === 0 ? <h1 className="vh-q">{m.content}</h1> : <h2 className="vh-q is-follow">{m.content}</h2>)
-        : <Answer m={m} t={t} account={account} isLast={i === t.messages.length - 1} onCopy={setToast} showUnsaved={i === unsavedIndex} />}
+        : m.kind === 'build'
+          ? <BuildCard m={m} pending={!!m.pending} canUndo={t.canUndo && m.applied && i === lastApplied} onApply={() => t.applyPending(i)} onDiscard={() => t.discardPending(i)} onUndo={t.undoBuild} />
+          : m.kind === 'note'
+            ? <p className="vb-note">{m.content}</p>
+            : <Answer m={m} t={t} account={account} isLast={i === t.messages.length - 1} onCopy={setToast} showUnsaved={i === unsavedIndex} />}
     </div>)}
     <div ref={bottomRef} />
-    <div className="vh-follow"><Composer t={t} account={account} compact placeholder="Ask a follow-up…" autoFocus={false} /></div>
+    <div className="vh-follow"><Composer t={t} account={account} compact placeholder={t.mode === 'build' ? 'Change the model, e.g. “make it 16 ft wide” or “joists at 12 in”…' : 'Ask a follow-up…'} autoFocus={false} /></div>
     {toast && <div className="vh-toast" role="status">{toast}</div>}
   </section>;
 }

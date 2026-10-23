@@ -384,5 +384,16 @@ const video = {
   },
 };
 
-export const api = { auth, entities, functions, analytics, aiSearch, video };
+// Vivid Build Studio in the AI search (Build mode).
+const buildStudio = {
+  // { message, spec?, history? } -> { reply, question?, spec, summary, changes, viewer, validation, notice, usedPlanner }
+  turn: body => request('POST', '/build-studio/turn', { body }),
+  // To-scale PDF sheet -> Blob
+  async sheet({ spec, scale, paper }) {
+    const res = await authedFetch('/build-studio/sheet', { method: 'POST', body: JSON.stringify({ spec, scale, paper }), headers: { 'Content-Type': 'application/json' } });
+    return new Blob([await res.arrayBuffer()], { type: 'application/pdf' });
+  },
+};
+
+export const api = { auth, entities, functions, analytics, aiSearch, video, buildStudio };
 export default api;
