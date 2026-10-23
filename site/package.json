@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "check:names": "node scripts/check-retired-names.mjs",
-    "prebuild": "node scripts/check-retired-names.mjs",
+    "check:names": "node --experimental-strip-types --no-warnings scripts/check-retired-names.mjs",
+    "prebuild": "node --experimental-strip-types --no-warnings scripts/check-retired-names.mjs",
     "build": "vite build && node scripts/build-seo-manifest.mjs",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",

@@ -111,7 +111,7 @@ console.log('\n# SEO: tags and status codes in the raw HTML (what crawlers and l
   ok(!raw.includes('REPLACE_ME') && !raw.includes('G-XXXXXXXXXX') && !raw.includes('000000000000000'), 'no placeholder verification or tracker tags');
   const ld = JSON.parse((raw.match(/<script id="ld-site" type="application\/ld\+json">([\s\S]*?)<\/script>/) || [])[1] || '{}');
   const biz = ld['@graph']?.[0] || {};
-  ok(biz.address?.streetAddress === '410 Chestnut Business Parkway Dr' && biz.address?.postalCode === '77375' && biz.telephone === '+1-337-287-7543' && !biz.geo
+  ok(biz.address?.streetAddress === '410 Chestnut Business Parkway Dr' && biz.address?.postalCode === '77375' && biz.telephone === '+1-281-826-4068' && !biz.geo
     && biz.contactPoint?.some(c => c.url === 'https://wa.me/17138264068') && !raw.includes('30.0802'), 'business structured data: Tomball address, office phone, WhatsApp, no Beaumont coordinates', JSON.stringify(biz.address));
 
   // Speed: hero image preload on the homepage only, and compressed scripts.

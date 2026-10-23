@@ -37,7 +37,7 @@ const ALLOWED_AMOUNTS = new Set(
 export function buildKnowledge(): string {
   const lines = [
     'COMPANY: Vivid Engine Solutions. Locally Owned. Personally Built. Professionally Maintained.',
-    'OFFICE PHONE: 281-826-4068. WHATSAPP: https://wa.me/13372877543 (share the WhatsApp link, never read it out as a phone number to call). EMAIL: info@vividenginesolutions.com. ADDRESS: 410 Chestnut Business Parkway Dr, Tomball, TX 77375.',
+    'OFFICE PHONE: 281-826-4068. WHATSAPP: https://wa.me/12818264068 (share the WhatsApp link, never read it out as a phone number to call). EMAIL: info@vividenginesolutions.com. ADDRESS: 410 Chestnut Business Parkway Dr, Tomball, TX 77375.',
     'BASED IN: Tomball, Texas (Houston area). SERVICE AREA: from the Houston area to Lafayette, Louisiana. Southeast Texas (Houston area, Beaumont, Port Arthur, Orange, Nederland, Groves, Lumberton, Vidor) and Southwest Louisiana (Lake Charles, Sulphur, Westlake, Moss Bluff, Vinton, DeQuincy), and surrounding communities.',
     'CONSULTATIONS: free, in person or by phone. Requests are not confirmed appointments until the owner personally approves them.',
     'ONGOING MAINTENANCE: Basic Care $49/mo covers hosting, SSL, security, daily backups and monitoring. Turnkey Care $99/mo adds a domain, site assistant, up to 1 hour of edits, monthly report and priority support. Builds do not include monthly care.',
