@@ -30,7 +30,7 @@ const lakeCharles = {
       cards: [
         { title: 'Customer apps', paragraphs: ['Ordering, booking, loyalty and account apps your customers install on iPhone or Android, with your brand front and center.'], tags: ['iOS', 'Android', 'Google Play'] },
         { title: 'Booking & scheduling', paragraphs: ['Customers book themselves, and every appointment lands in your Google Calendar automatically. No more phone tag.'], tags: ['Calendar sync'] },
-        { title: 'POS & payments', paragraphs: ['Stripe-powered point of sale for the counter and online, built into your app with inventory and receipts.'], tags: ['Stripe POS'] },
+        { title: 'POS & payments', paragraphs: ['Square-powered point of sale for the counter and online, built into your app with inventory and receipts.'], tags: ['Square POS'] },
         { title: 'CRM & client portals', paragraphs: ['One place for clients, jobs, invoices and inventory, plus a secure portal where your clients log in.'], tags: ['CRM', 'Portals'] },
         { title: 'Staff & field tools', paragraphs: ['Job checklists, estimates, photo logs and time tracking for crews working across the parish.'], tags: ['Works offline'] },
         { title: 'Websites that match', paragraphs: ['A fast, mobile-first website that shares the same branding and data as your app. [See our web design work](/locations/beaumont-web-design).'], tags: ['Web design'] },
@@ -41,7 +41,7 @@ const lakeCharles = {
       cards: [
         { title: 'Front end', paragraphs: ['React and modern web standards, installable web apps (PWA) that load fast and keep working with weak signal.'] },
         { title: 'iOS & Android', paragraphs: ['Apps installed from Google Play or straight to the home screen, with Sign in with Apple, passkeys (Face ID / fingerprint) and 2-step verification.'] },
-        { title: 'Payments & POS', paragraphs: ['Stripe for point of sale and online checkout. Square payment links and customer financing can be added too.'] },
+        { title: 'Payments & POS', paragraphs: ['Square for point of sale and online checkout. Square payment links and customer financing can be added too.'] },
         { title: 'Data & integrations', paragraphs: ['Secure cloud database and hosting with backups, Google Calendar sync and custom CRM connections.'] },
       ],
     },
@@ -52,7 +52,7 @@ const lakeCharles = {
     {
       label: 'Pricing', title: 'Clear pricing, no surprises', description: 'Start with what you need and add features as you grow. Every project gets a written quote first.',
       prices: [['Installable app add-on', '$1,500', 'and up', 'Your site as an app on iPhone and Android, plus a Google Play listing.'], ['Full Engine', '$3,500', 'and up', 'Custom web or Google Play app with a client portal and secure logins.'], ['Monthly care', '$49', '/mo and up', 'Hosting, security and backups. Turnkey Care ($99/mo) adds edits, a domain and the site assistant.']],
-      paymentNote: 'Websites start at $999. Add online booking ($299), Stripe POS (from $1,500) or a custom CRM (from $2,500).', addonsLink: true,
+      paymentNote: 'Websites start at $999. Add online booking ($299), Square POS (from $1,500) or a custom CRM (from $2,500).', addonsLink: true,
     },
   ],
   faqTitle: 'Lake Charles app development FAQ',

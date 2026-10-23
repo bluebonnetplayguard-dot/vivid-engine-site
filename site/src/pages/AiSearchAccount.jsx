@@ -55,17 +55,22 @@ export default function AiSearchAccount() {
     let timer;
     const load = () => api.aiSearch.me().then(data => {
       setMe(data);
-      // Right after checkout, Stripe's confirmation can take a few seconds to arrive.
+      // Right after checkout, Square's confirmation can take a few seconds to arrive.
       if (params.get('checkout') === 'success' && data.tier.id === 'free' && tries++ < 10) timer = setTimeout(load, 2000);
     }).catch(e => setError(e.message));
     load();
     return () => clearTimeout(timer);
   }, [params]);
 
-  const manage = async () => {
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const cancelPlan = async () => {
     setOpening(true); setError('');
-    try { const { url } = await api.aiSearch.billingPortal(); window.location.assign(url); }
-    catch (e) { setError(e.message); setOpening(false); }
+    try {
+      const r = await api.payments.cancel('ai_search');
+      setConfirmCancel(false);
+      setMe(prev => (prev ? { ...prev, subscription: { ...prev.subscription, cancels_on: r.endsOn } } : prev));
+    } catch (e) { setError(e.message); }
+    finally { setOpening(false); }
   };
 
   const sub = me?.subscription;
@@ -86,16 +91,23 @@ export default function AiSearchAccount() {
           <p style={{ color: 'var(--muted)', marginBottom: 16 }}>
             {me.tier.contributors.length ? `Second opinions from ${me.tier.contributors.join(', ')}. ` : ''}
             {sub?.status && sub.status !== 'active' ? `Billing status: ${sub.status.replace('_', ' ')}. ` : ''}
-            {sub?.current_period_end ? `Renews ${new Date(sub.current_period_end).toLocaleDateString()}.` : ''}
+            {sub?.cancels_on ? `Cancelled: your plan stays on until ${new Date(sub.cancels_on).toLocaleDateString()}. ` : sub?.current_period_end ? `Renews ${new Date(sub.current_period_end).toLocaleDateString()}. ` : ''}
+            {sub?.provider && sub.provider !== 'square' ? 'This plan was set up with our previous payment provider; WhatsApp us to change it. ' : ''}
             {me.role === 'member' ? 'You have a seat on your company’s Business plan.' : ''}
           </p>
           <Meter label="Questions today" used={me.usage.today} limit={me.usage.dailyLimit} />
           <Meter label={me.tier.id === 'business' ? 'Team questions this month' : 'Questions this month'} used={me.usage.month} limit={me.usage.monthlyLimit} />
           <div className="ais-inline" style={{ marginTop: 8 }}>
             <Link className="engine-button engine-primary" to="/ai-search">Ask a question</Link>
-            {sub?.can_manage_billing && <button type="button" className="engine-button engine-outline" onClick={manage} disabled={opening}>{opening ? 'Opening…' : 'Manage billing'}</button>}
+            {sub?.can_manage_billing && !sub.cancels_on && !confirmCancel && <button type="button" className="engine-button engine-outline" onClick={() => setConfirmCancel(true)}>Cancel plan</button>}
+            {sub?.can_manage_billing && <Link className="engine-button engine-outline" to={`/checkout?kind=ai_search&tier=${me.tier.id}&update_card=1`}>Update card</Link>}
             {me.role !== 'member' && me.tier.id !== 'max' && <Link className="engine-button engine-outline" to="/ai-search/pricing">{me.tier.id === 'free' ? 'Upgrade' : 'Compare plans'}</Link>}
           </div>
+          {confirmCancel && <div className="ais-locked" role="alertdialog" aria-labelledby="cancel-h" style={{ marginTop: 12 }}>
+            <b id="cancel-h">Cancel your plan?</b>
+            <span>You keep everything until the end of the period you've paid for. Saved conversations stay readable for 30 days after that.</span>
+            <div className="ais-inline"><button type="button" className="engine-button engine-outline" onClick={cancelPlan} disabled={opening}>{opening ? 'Cancelling…' : 'Yes, cancel'}</button><button type="button" className="engine-button engine-primary" onClick={() => setConfirmCancel(false)}>Keep my plan</button></div>
+          </div>}
         </section>
         {me.tier.id === 'business' && me.role === 'owner' && <Team />}
       </>}

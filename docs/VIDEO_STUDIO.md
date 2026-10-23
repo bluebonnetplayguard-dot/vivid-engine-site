@@ -41,7 +41,7 @@ The only server costs are the AI features. Each one is metered in `video_usage` 
 | Plans and limits (single source of truth) | `backend/src/video/video-plans.ts` |
 | Limits, projects, brand kits, exports, seats | `backend/src/video/video.service.ts` |
 | Captions, voiceover, script-to-video, stock search and relay | `backend/src/video/video-ai.ts` |
-| Stripe checkout, portal, webhook sync | `backend/src/video/video.billing.ts` |
+| Square checkout, portal, webhook sync | `backend/src/video/video.billing.ts` |
 | Endpoints under `/api/video/*` | `backend/src/video/video.controller.ts` |
 | Database tables (new, additive) | `backend/src/migrations/003_video_studio.sql` |
 | Editor engine (model, renderer, player, exporter, MP4 writer, audio, media, templates) | `site/src/video/engine/` |
@@ -80,7 +80,7 @@ To change a price or limit, edit `video-plans.ts` and redeploy.
    - `OPENAI_API_KEY` (already set) turns on captions and voiceover.
    - `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` turns on script-to-video.
    - Optional: `PEXELS_API_KEY` (free at pexels.com/api) turns on stock footage. Pexels asks apps to credit photographers; the editor shows credits on each stock clip.
-2. **Stripe:** nothing new. It uses the same webhook endpoint and events as AI Search (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`). The customer portal setting for quantity changes covers Business seats.
+2. **Square:** nothing new. It uses the same webhook endpoint and events as AI Search (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`). The customer portal setting for quantity changes covers Business seats.
 3. Restart the app after changing keys: `cd /opt/vivid/infra && docker compose up -d app`.
 
 ## Checks

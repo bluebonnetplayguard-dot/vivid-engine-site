@@ -11,7 +11,9 @@ import { Realtime } from './entities/realtime';
 import { JsonErrorFilter } from './errors';
 import { AiService } from './functions/ai';
 import { Billing } from './functions/billing';
-import { FunctionsController, WebhooksController } from './functions/functions.controller';
+import { FunctionsController } from './functions/functions.controller';
+import { PaymentsController, SquareWebhookController } from './payments/payments.controller';
+import { PaymentsService } from './payments/payments.service';
 import { OpsService } from './functions/ops';
 import { PortalService } from './functions/portal';
 import { PublicClients } from './functions/public-client';
@@ -36,10 +38,10 @@ import { StackAdvisorController } from './stack-advisor/stack-advisor.controller
     // Default: 120 requests per minute per IP. Nginx applies a coarser limit in front.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
   ],
-  controllers: [AuthController, EntitiesController, FunctionsController, WebhooksController, MiscController, AiSearchController, VideoController, BuildStudioController, StackAdvisorController],
+  controllers: [AuthController, EntitiesController, FunctionsController, PaymentsController, SquareWebhookController, MiscController, AiSearchController, VideoController, BuildStudioController, StackAdvisorController],
   providers: [
     Db, Mail, RateLimiter, Realtime, Notifier, AuthService, EntitiesService,
-    AiService, Billing, PortalService, OpsService, PublicClients, MarketResearch, PricingService,
+    PaymentsService, AiService, Billing, PortalService, OpsService, PublicClients, MarketResearch, PricingService,
     AiSearchService, AiSearchBilling,
     VideoService, VideoAi, VideoBilling,
     { provide: APP_GUARD, useClass: ThrottlerGuard },

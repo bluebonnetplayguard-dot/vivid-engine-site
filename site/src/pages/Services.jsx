@@ -10,7 +10,7 @@ const SERVICES = [
   { icon: Wrench, title: "Ongoing Maintenance", desc: "Basic Care ($49/mo) covers hosting, SSL, security updates, daily backups and monitoring. Turnkey Care ($99/mo) adds a domain, site assistant, monthly edits, report and priority support." },
   { icon: Globe, title: "Domain Leasing", desc: "Lease a professional domain for $9.95/month. We handle registration, DNS, SSL, and renewals." },
   { icon: Zap, title: "Business Automation", desc: "Automate client management, scheduling, and workflows so your business runs itself." },
-  { icon: CreditCard, title: "Payment Integration", desc: "Stripe POS setup, online checkout, and payment processing built into your site." },
+  { icon: CreditCard, title: "Payment Integration", desc: "Square POS setup, online checkout, and payment processing built into your site." },
   { icon: Users, title: "In-Person Consultations", desc: "Free face-to-face or phone consultations across Southeast Texas and Southwest Louisiana." },
   { icon: Calendar, title: "No Long-Term Contracts", desc: "Project builds are fixed-scope. Maintenance runs month-to-month — cancel anytime." },
 ];

@@ -61,10 +61,15 @@ export default function VideoAccount() {
     return () => clearTimeout(timer);
   }, [params]);
 
-  const manage = async () => {
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const cancelPlan = async () => {
     setOpening(true); setError('');
-    try { const { url } = await api.video.billingPortal(); window.location.assign(url); }
-    catch (e) { setError(e.message); setOpening(false); }
+    try {
+      const r = await api.payments.cancel('video_studio');
+      setConfirmCancel(false);
+      setMe(prev => (prev ? { ...prev, subscription: { ...prev.subscription, cancels_on: r.endsOn } } : prev));
+    } catch (e) { setError(e.message); }
+    finally { setOpening(false); }
   };
 
   const sub = me?.subscription;
@@ -95,9 +100,15 @@ export default function VideoAccount() {
           <Meter label={`${pooled ? 'Team voiceover' : 'Voiceover'} characters`} used={me.usage.ttsChars.used} limit={me.usage.ttsChars.limit} />
           <div className="ais-inline" style={{ marginTop: 8 }}>
             <Link className="engine-button engine-primary" to="/video">Open Video Studio</Link>
-            {sub?.can_manage_billing && <button type="button" className="engine-button engine-outline" onClick={manage} disabled={opening}>{opening ? 'Opening…' : 'Manage billing'}</button>}
+            {sub?.can_manage_billing && !sub.cancels_on && !confirmCancel && <button type="button" className="engine-button engine-outline" onClick={() => setConfirmCancel(true)}>Cancel plan</button>}
+            {sub?.can_manage_billing && <Link className="engine-button engine-outline" to={`/checkout?kind=video_studio&tier=${me.tier.id}&update_card=1`}>Update card</Link>}
             {me.role !== 'member' && me.tier.id !== 'studio' && <Link className="engine-button engine-outline" to="/video/pricing">{me.tier.id === 'free' ? 'Upgrade' : 'Compare plans'}</Link>}
           </div>
+          {confirmCancel && <div className="ais-locked" role="alertdialog" aria-labelledby="cancel-h" style={{ marginTop: 12 }}>
+            <b id="cancel-h">Cancel your plan?</b>
+            <span>You keep everything until the end of the period you've paid for. Saved conversations stay readable for 30 days after that.</span>
+            <div className="ais-inline"><button type="button" className="engine-button engine-outline" onClick={cancelPlan} disabled={opening}>{opening ? 'Cancelling…' : 'Yes, cancel'}</button><button type="button" className="engine-button engine-primary" onClick={() => setConfirmCancel(false)}>Keep my plan</button></div>
+          </div>}
         </section>
         {me.tier.id === 'business' && me.role === 'owner' && <Team />}
       </>}

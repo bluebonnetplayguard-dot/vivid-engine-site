@@ -2,7 +2,7 @@ import Reveal from "@/components/marketing/Reveal";
 
 const features = [
   { title: "Custom Web & App Builds", desc: "No templates. Custom design tailored to your exact business needs with dedicated local support." },
-  { title: "Stripe POS Integration", desc: "Accept payments anywhere with a dedicated point-of-sale system connected directly to your platform." },
+  { title: "Square POS Integration", desc: "Accept payments anywhere with a dedicated point-of-sale system connected directly to your platform." },
   { title: "Client Portal & CRM", desc: "Manage project status, task workflows, and track costs from a single central dashboard." },
 ];
 

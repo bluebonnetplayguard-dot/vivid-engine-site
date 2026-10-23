@@ -406,5 +406,16 @@ const stackAdvisor = {
   search: (q, filters = {}) => request('GET', `/stack-advisor/search?${new URLSearchParams({ q, ...filters })}`),
 };
 
-export const api = { auth, entities, functions, analytics, aiSearch, video, buildStudio, stackAdvisor };
+// Square payments. Prices are computed on the server; the browser only sends a token.
+const payments = {
+  config: () => request('GET', '/payments/config'),
+  quote: body => request('POST', '/payments/quote', { body }),
+  charge: body => request('POST', '/payments/charge', { body }),
+  subscribe: body => request('POST', '/payments/subscribe', { body }),
+  cancel: kind => request('POST', `/payments/subscriptions/${encodeURIComponent(kind)}/cancel`, { body: {} }),
+  updateCard: (kind, body) => request('POST', `/payments/subscriptions/${encodeURIComponent(kind)}/card`, { body }),
+  sendInvoice: id => request('POST', `/payments/invoices/${encodeURIComponent(id)}/send`, { body: {} }),
+};
+
+export const api = { auth, entities, functions, analytics, aiSearch, video, buildStudio, stackAdvisor, payments };
 export default api;

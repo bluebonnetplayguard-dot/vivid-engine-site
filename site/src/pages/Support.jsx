@@ -17,7 +17,7 @@ const FAQS = [
   },
   {
     q: "Can you build a CRM or POS system into my site?",
-    a: "Yes — we offer custom CRM systems with calendar integration and POS systems built on Stripe for clients who need them.",
+    a: "Yes — we offer custom CRM systems with calendar integration and POS systems built on Square for clients who need them.",
   },
   {
     q: "Does my site come with an AI assistant?",

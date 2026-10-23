@@ -18,7 +18,7 @@ async function bootstrap() {
   const log = new Logger('Boot');
   await runMigrations(msg => log.log(msg));
 
-  // rawBody is needed to verify Stripe webhook signatures.
+  // rawBody is needed to verify Square webhook signatures.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   app.setGlobalPrefix('api');
   app.set('trust proxy', 1); // Nginx or App Platform sits in front; req.ip is the visitor's address.

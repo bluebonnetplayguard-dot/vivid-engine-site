@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS ai_subscriptions (
   id                      text PRIMARY KEY DEFAULT new_id(),
   owner_user_id           text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   tier                    text NOT NULL,
-  status                  text NOT NULL DEFAULT 'active',  -- Stripe status: active, trialing, past_due, canceled, ...
+  status                  text NOT NULL DEFAULT 'active',  -- active, trialing, past_due, canceled, ...
   seats                   int  NOT NULL DEFAULT 1 CHECK (seats >= 1 AND seats <= 500),
   company_name            text,
   stripe_customer_id      text,

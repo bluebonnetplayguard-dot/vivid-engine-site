@@ -29,9 +29,12 @@ const schema = z.object({
   MAIL_FROM: z.string().default('Vivid Engine Solutions <info@vividenginesolutions.com>'),
   STAFF_NOTIFY_EMAIL: z.string().default('info@vividenginesolutions.com'),
 
-  STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),
-  STRIPE_AUTOMATIC_TAX: z.enum(['true', 'false']).default('false'),
+  // Square (the only payment provider). Payments from any other location are rejected.
+  SQUARE_APPLICATION_ID: z.string().optional(),
+  SQUARE_LOCATION_ID: z.string().optional(),
+  SQUARE_ACCESS_TOKEN: z.string().optional(),
+  SQUARE_WEBHOOK_SIGNATURE_KEY: z.string().optional(),
+  SQUARE_ENVIRONMENT: z.enum(['sandbox', 'production']).default('sandbox'),
 
   ANTHROPIC_API_KEY: z.string().optional(),
   CLAUDE_MODEL: z.string().default('claude-opus-5-5'),

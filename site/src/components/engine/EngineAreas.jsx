@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 const areas = [
   ['Southeast Texas', 'Beaumont Web Design', 'Beaumont, Port Arthur, Nederland, Orange, Vidor, Lumberton and Silsbee. Jefferson, Orange & Hardin counties.', 'Beaumont, TX', '/locations/beaumont-web-design'],
   ['Southwest Louisiana', 'Lake Charles App Development', 'Lake Charles, Sulphur, Westlake, Moss Bluff, DeRidder and Jennings. Calcasieu, Cameron, Beauregard & Jefferson Davis parishes.', 'Lake Charles, LA', '/locations/lake-charles-app-development'],
-  ['Service', 'Custom App Development', 'iPhone, Android and web apps: booking, Stripe POS, CRM with calendar sync, client portals and staff tools.', 'App development', '/services/custom-app-development'],
+  ['Service', 'Custom App Development', 'iPhone, Android and web apps: booking, Square POS, CRM with calendar sync, client portals and staff tools.', 'App development', '/services/custom-app-development'],
 ];
 export default function EngineAreas() {
   return <section id="areas" className="engine-section engine-band"><div className="engine-wrap">

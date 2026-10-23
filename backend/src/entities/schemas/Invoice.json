@@ -89,6 +89,18 @@
     },
     "notes": {
       "type": "string"
+    },
+    "payment_provider": {
+      "type": "string"
+    },
+    "payment_id": {
+      "type": "string"
+    },
+    "square_invoice_id": {
+      "type": "string"
+    },
+    "square_invoice_url": {
+      "type": "string"
     }
   },
   "required": [

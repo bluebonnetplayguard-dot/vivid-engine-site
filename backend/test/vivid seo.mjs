@@ -276,7 +276,7 @@ r = await call('POST', '/api/functions/createCheckout', { token: admin.token, bo
 ok(r.data.pricing?.mode === 'subscription' && r.data.pricing.items.map(i => i.cents).join(',') === '9900,24900,1218', 'Turnkey Care: domain included, SEO added, card fee', JSON.stringify(r.data.pricing?.items));
 r = await call('POST', '/api/functions/createCheckout', { token: admin.token, body: { plan_id: 'starter', amount: 1 } }); ok(r.status === 400, 'browser-supplied amounts rejected');
 r = await call('POST', '/api/functions/createCheckout', { token: admin.token, body: { plan_id: 'full' } }); ok(r.status === 400, 'Full Engine requires a quote');
-r = await call('POST', '/api/functions/createCheckout', { token: admin.token, body: { plan_id: 'starter' } }); ok(r.status === 503, 'real checkout refuses cleanly without Stripe keys');
+r = await call('POST', '/api/functions/createCheckout', { token: admin.token, body: { plan_id: 'starter' } }); ok(r.status === 200 && /\/checkout\?/.test(r.body?.url || ''), 'checkout returns the in-site Square checkout link');
 
 console.log('\n# Public visitor check, chat and inquiry');
 r = await call('POST', '/api/functions/chatAssistant', { body: { sessionId: '11111111-1111-4111-8111-111111111111', message: 'hi' } });

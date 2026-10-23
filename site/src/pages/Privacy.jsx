@@ -94,7 +94,7 @@ export default function Privacy() {
 
         <Section title="Vivid AI Search">
           <p>We record how many questions you ask to apply your plan's limits. Whether your conversations are saved depends on your plan, as described under Saved conversation history below.</p>
-          <p>To answer, your question is sent to Anthropic (Claude), which may search the web. On paid plans the question is also sent to the other AI engines listed on your plan (Perplexity, Google Gemini and OpenAI ChatGPT) for a second opinion. Avoid entering passwords, payment details or other sensitive personal information in questions. Payments for paid plans are processed by Stripe.</p>
+          <p>To answer, your question is sent to Anthropic (Claude), which may search the web. On paid plans the question is also sent to the other AI engines listed on your plan (Perplexity, Google Gemini and OpenAI ChatGPT) for a second opinion. Avoid entering passwords, payment details or other sensitive personal information in questions. Payments for paid plans are processed by Square.</p>
         </Section>
 
         <Section title="Saved conversation history">
@@ -112,7 +112,7 @@ export default function Privacy() {
 
         <Section title="Vivid Video Studio">
           <p>Videos are edited and exported in your own browser. The video, photo and music files you add stay on your device and are not uploaded to us. We store your projects’ edit settings (titles, text, timing and effects), small preview images, and any brand kits you save, so you can reopen them from your account, and we count exports and AI use to apply your plan’s limits. You can delete a project at any time.</p>
-          <p>When you use AI features, the needed content is sent to the provider that does the work: the sound of your video to OpenAI to make captions, the narration text to OpenAI to make an AI voiceover, and the text you paste for script-to-video to Anthropic (Claude) or OpenAI. Stock footage searches go to Pexels, and downloads of Pexels files pass through our server so your browser can edit them. Don’t use AI features on recordings of people who have not agreed to it. Payments for paid plans are processed by Stripe.</p>
+          <p>When you use AI features, the needed content is sent to the provider that does the work: the sound of your video to OpenAI to make captions, the narration text to OpenAI to make an AI voiceover, and the text you paste for script-to-video to Anthropic (Claude) or OpenAI. Stock footage searches go to Pexels, and downloads of Pexels files pass through our server so your browser can edit them. Don’t use AI features on recordings of people who have not agreed to it. Payments for paid plans are processed by Square.</p>
         </Section>
 
         <Section title="Data storage and security">

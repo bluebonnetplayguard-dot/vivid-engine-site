@@ -9,7 +9,7 @@ Approved prices are saved on the item in the central database (every phone and c
 value, with live updates) and recorded in the price history, where any change can be restored.
 
 They do **not** change your website's published price list (`site/src/config/pricing.js`) or the amounts
-Stripe checkout charges (`backend/src/shared/pricing.ts`). Charging a price that differs from what the
+Square checkout charges (`backend/src/shared/pricing.ts`). Charging a price that differs from what the
 website shows would mislead customers, so connecting the two is a separate decision. When you want it,
 the change is: the website and checkout read the approved price for linked items. Ask and I'll wire it up.
 

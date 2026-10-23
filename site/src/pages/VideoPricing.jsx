@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { api } from '@/api/client';
 import { useAuth } from '@/lib/AuthContext';
@@ -38,6 +38,7 @@ function TierCard({ tier, onBuy, busy }) {
 export default function VideoPricing() {
   const { isAuthenticated } = useAuth();
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const [plans, setPlans] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
@@ -47,13 +48,10 @@ export default function VideoPricing() {
   const buy = async (tier, extra) => {
     if (!isAuthenticated) { api.auth.redirectToLogin('/video/pricing'); return; }
     setError(''); setBusy(tier.id);
-    try {
-      const { url } = await api.video.checkout({ tier: tier.id, ...extra });
-      window.location.assign(url);
-    } catch (e) {
-      setError(e?.message || 'Checkout could not be opened.');
-      setBusy('');
-    }
+    const q = new URLSearchParams({ kind: 'video_studio', tier: tier.id });
+    if (extra.seats) q.set('seats', String(extra.seats));
+    if (extra.company_name) q.set('company', extra.company_name);
+    navigate(`/checkout?${q}`);
   };
 
   return <div className="engine-site">

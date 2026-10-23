@@ -20,7 +20,7 @@ export const ADD_ON_PRICES: Record<string, AddOnPrice> = {
   brand: { name: 'Logo & brand kit', cents: 29900, billing: 'one_time', includedIn: [] },
   booking: { name: 'Online booking + Google Calendar sync', cents: 29900, billing: 'one_time', includedIn: [] },
   store: { name: 'Online payments / small store', cents: null, startingCents: 49900, billing: 'one_time', includedIn: [] },
-  pos: { name: 'Custom POS (Stripe)', cents: null, startingCents: 150000, billing: 'one_time', includedIn: [] },
+  pos: { name: 'Custom POS (Square)', cents: null, startingCents: 150000, billing: 'one_time', includedIn: [] },
   crm: { name: 'Custom CRM', cents: null, startingCents: 250000, billing: 'one_time', includedIn: [] },
   app: { name: 'Installable app + Google Play listing', cents: null, startingCents: 150000, billing: 'one_time', includedIn: [] },
   'ai-chat': { name: 'Site assistant chat', cents: 2900, billing: 'monthly', includedIn: ['care'] },

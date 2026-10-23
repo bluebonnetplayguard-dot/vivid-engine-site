@@ -48,7 +48,7 @@ const csvCell = (v: unknown) => { const s = v == null ? '' : String(v); return /
 
 // Market pricing: research, recommendations, approvals, history and the scheduler.
 // Prices change only on PricingItem records (the central pricing database). They do
-// not change the website's published price list or Stripe checkout amounts.
+// not change the website's published price list or Square checkout amounts.
 @Injectable()
 export class PricingService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('Pricing');

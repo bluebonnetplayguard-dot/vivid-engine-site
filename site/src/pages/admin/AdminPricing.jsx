@@ -189,7 +189,7 @@ export default function AdminPricing() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold">Market Pricing</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Verified market prices, AI recommendations and your approvals. Changes update your pricing records here; they do not change the website's price list or Stripe checkout.</p>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Verified market prices, AI recommendations and your approvals. Changes update your pricing records here; they do not change the website's price list or Square checkout.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={analyze} disabled={!!busy}>{busy === "analyze" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}Analyze market</Button>

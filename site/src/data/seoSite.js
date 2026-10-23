@@ -61,7 +61,7 @@ export const localBusinessLd = {
     { '@type': 'ContactPoint', contactType: 'customer service', telephone: SITE.phone, email: SITE.email, areaServed: ['US-TX', 'US-LA'], availableLanguage: 'English' },
     whatsappContactPoint,
   ],
-  knowsAbout: ['Web design', 'App development', 'React', 'Progressive web apps', 'iOS and Android apps', 'Stripe POS', 'CRM', 'Google Calendar integration', 'Local SEO', 'Website hosting and maintenance'],
+  knowsAbout: ['Web design', 'App development', 'React', 'Progressive web apps', 'iOS and Android apps', 'Square POS', 'CRM', 'Google Calendar integration', 'Local SEO', 'Website hosting and maintenance'],
   areaServed: ['Harris County, Texas', 'Montgomery County, Texas', 'Jefferson County, Texas', 'Orange County, Texas', 'Hardin County, Texas', 'Calcasieu Parish, Louisiana', 'Lafayette Parish, Louisiana', 'Cameron Parish, Louisiana', 'Beauregard Parish, Louisiana', 'Jefferson Davis Parish, Louisiana'].map(name => ({ '@type': 'AdministrativeArea', name })),
   hasOfferCatalog: {
     '@type': 'OfferCatalog', name: 'Web and app services',

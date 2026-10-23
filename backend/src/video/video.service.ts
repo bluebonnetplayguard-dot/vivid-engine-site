@@ -112,7 +112,7 @@ export class VideoService {
       ai: { captions: !!config.OPENAI_API_KEY, voiceover: !!config.OPENAI_API_KEY, storyboard: !!(config.ANTHROPIC_API_KEY || config.OPENAI_API_KEY), stock: !!config.PEXELS_API_KEY },
       subscription: sub ? {
         status: sub.status, seats: Number(sub.seats), company_name: sub.company_name ?? null,
-        current_period_end: sub.current_period_end ?? null, can_manage_billing: ent.role === 'owner' && !!sub.stripe_customer_id,
+        current_period_end: sub.current_period_end ?? null, can_manage_billing: ent.role === 'owner' && sub.provider === 'square' && !!sub.square_subscription_id, provider: sub.provider, cancels_on: sub.canceled_date ?? null,
       } : null,
     };
   }

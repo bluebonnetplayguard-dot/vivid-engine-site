@@ -1,24 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
-import Stripe from 'stripe';
 import { AuthUser } from '../auth/guard';
 import { config } from '../config';
 import { EntitiesService } from '../entities/entities.service';
 import { ApiError, badRequest } from '../errors';
 import { isEmail, str } from '../shared/guards';
 import { CARD_FEE_RATE, CatalogItem, catalogItems } from '../shared/pricing';
-import { AiSearchBilling } from '../ai-search/ai-search.billing';
-import { VideoBilling } from '../video/video.billing';
+import { PaymentsService } from '../payments/payments.service';
 
 const PRICE_KEYS = ['amount', 'total', 'price', 'unit_amount', 'line_items', 'subtotal'];
 
-// Ported from base44/functions/createInvoice, createCheckout and shared/checkoutPricing + stripeCheckout.
-// Added: a Stripe webhook that marks the invoice paid once Checkout completes.
+// Ported from base44/functions/createInvoice and createCheckout. Payments go through Square (payments/):
+// createCheckout returns the server-side quote and the in-site checkout link the admin can send or open.
 @Injectable()
 export class Billing {
   private readonly log = new Logger('Billing');
-  readonly stripe = config.STRIPE_SECRET_KEY ? new Stripe(config.STRIPE_SECRET_KEY) : null;
-
-  constructor(private readonly entities: EntitiesService, private readonly aiSearch: AiSearchBilling, private readonly video: VideoBilling) {}
+  constructor(private readonly entities: EntitiesService, private readonly payments: PaymentsService) {}
 
   async createInvoice(user: AuthUser, body: any) {
     if (!str(body.client_name, 100)) throw badRequest('Client name is required.');
@@ -91,58 +87,13 @@ export class Billing {
       throw badRequest((e as Error).message);
     }
     if (body.preview_only === true) return { pricing };
-    if (!this.stripe) throw new ApiError(503, 'Checkout is not configured.');
-    if (pricing.client_email && !isEmail(pricing.client_email)) throw badRequest('Enter a valid client email.');
-
-    const metadata: Record<string, string> = {
-      plan_id: String(pricing.plan_id), billing_cycle: String(pricing.billing_cycle),
-      add_on_ids: (pricing.add_on_ids as string[]).join(','), client_name: str(pricing.client_name, 100),
-      ...(pricing.invoice_id ? { invoice_id: pricing.invoice_id } : {}),
-    };
-    const session = await this.stripe.checkout.sessions.create({
-      mode: pricing.mode,
-      payment_method_types: ['card'],
-      metadata,
-      success_url: `${config.PUBLIC_ORIGIN}/admin/pos?status=success`,
-      cancel_url: `${config.PUBLIC_ORIGIN}/admin/pos?status=cancel`,
-      ...(pricing.client_email ? { customer_email: pricing.client_email } : {}),
-      ...(pricing.automaticTax ? { automatic_tax: { enabled: true }, billing_address_collection: 'required' as const } : {}),
-      ...(pricing.mode === 'subscription'
-        ? { subscription_data: { metadata: { plan_id: metadata.plan_id, billing_cycle: metadata.billing_cycle, invoice_id: pricing.invoice_id } } }
-        : { payment_intent_data: { metadata } }),
-      line_items: pricing.items.map(item => ({
-        quantity: 1,
-        price_data: {
-          currency: 'usd',
-          unit_amount: item.cents,
-          product_data: { name: item.name },
-          ...(pricing.automaticTax ? { tax_behavior: 'exclusive' as const } : {}),
-          ...(item.interval ? { recurring: { interval: item.interval } } : {}),
-        },
-      })),
-    });
-    return { id: session.id, url: session.url };
-  }
-
-  async handleWebhook(rawBody: Buffer, signature: string) {
-    if (!this.stripe || !config.STRIPE_WEBHOOK_SECRET) throw badRequest('Webhooks are not configured.');
-    let event: Stripe.Event;
-    try {
-      event = this.stripe.webhooks.constructEvent(rawBody, signature, config.STRIPE_WEBHOOK_SECRET);
-    } catch {
-      throw badRequest('Invalid webhook signature.');
-    }
-    // AI Search and Video Studio subscriptions; a failure throws so Stripe retries the event.
-    if (await this.aiSearch.handleEvent(event)) return { received: true };
-    if (await this.video.handleEvent(event)) return { received: true };
-    if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const invoiceId = session.metadata?.invoice_id;
-      if (invoiceId && session.payment_status !== 'unpaid') {
-        await this.entities.patch('Invoice', invoiceId, { status: 'paid', paid_date: new Date().toISOString().slice(0, 10) })
-          .catch(e => this.log.error(`Could not mark invoice ${invoiceId} paid: ${(e as Error).message}`));
-      }
-    }
-    return { received: true };
+    if (pricing.mode === 'subscription') throw badRequest('Monthly website plans are set up by the client from their account page.');
+    const q = new URLSearchParams();
+    if (pricing.invoice_id) q.set('invoice', pricing.invoice_id);
+    else { q.set('plan', pricing.plan_id); q.set('cycle', pricing.billing_cycle); if (pricing.add_on_ids.length) q.set('add_ons', (pricing.add_on_ids as string[]).join(',')); }
+    const url = `${config.PUBLIC_ORIGIN}/checkout?${q}`;
+    // Optionally email the client a Square invoice with its own pay link.
+    const sent = body.send_square_invoice === true && pricing.invoice_id ? await this.payments.sendInvoice(pricing.invoice_id) : null;
+    return { id: pricing.invoice_id || pricing.plan_id, url, pricing, squareInvoice: sent };
   }
 }

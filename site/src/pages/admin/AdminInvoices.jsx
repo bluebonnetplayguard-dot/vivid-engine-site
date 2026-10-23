@@ -60,7 +60,7 @@ export default function AdminInvoices() {
     <div className="p-6 md:p-10">
       <PageMeta {...PAGE_META.adminInvoices} noindex />
       <div className="flex items-center justify-between">
-        <div><h1 className="font-heading text-2xl font-bold">Invoices</h1><p className="mt-1 text-sm text-muted-foreground">Bill clients and accept payment via Stripe.</p></div>
+        <div><h1 className="font-heading text-2xl font-bold">Invoices</h1><p className="mt-1 text-sm text-muted-foreground">Bill clients and accept payment through Square. Afterpay refunds: Square can refund an Afterpay purchase for up to 120 days; after that, refund another way and note it here.</p></div>
         <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> New invoice</Button></DialogTrigger>
           <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
             <DialogHeader><DialogTitle>New invoice</DialogTitle></DialogHeader>

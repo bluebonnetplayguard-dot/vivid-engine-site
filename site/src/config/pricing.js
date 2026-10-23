@@ -15,7 +15,7 @@ export const ADD_ONS = [
   { id: 'brand', group: 'Site & brand', name: 'Logo & brand kit', price: 299, billing: 'one_time', display: '$299', detail: 'A logo and coordinated brand kit.', includedIn: [] },
   { id: 'booking', group: 'Business tools', name: 'Online booking + Google Calendar sync', price: 299, billing: 'one_time', display: '$299 setup', detail: 'Online appointments synced to your calendar.', includedIn: [] },
   { id: 'store', group: 'Business tools', name: 'Online payments / small store', price: 499, startingFrom: true, billing: 'one_time', display: 'from $499', detail: 'Online payments or a small store, quoted by scope.', includedIn: [] },
-  { id: 'pos', group: 'Business tools', name: 'Custom POS (Stripe)', price: 1500, startingFrom: true, billing: 'one_time', display: 'from $1,500', detail: 'In-person and online payments with inventory.', includedIn: [] },
+  { id: 'pos', group: 'Business tools', name: 'Custom POS (Square)', price: 1500, startingFrom: true, billing: 'one_time', display: 'from $1,500', detail: 'In-person and online payments with inventory.', includedIn: [] },
   { id: 'crm', group: 'Business tools', name: 'Custom CRM', price: 2500, startingFrom: true, billing: 'one_time', display: 'from $2,500', detail: 'Clients, jobs, invoices and inventory in one place.', includedIn: [] },
   { id: 'app', group: 'Business tools', name: 'Installable app + Google Play listing', price: 1500, startingFrom: true, billing: 'one_time', display: 'from $1,500', detail: 'An installable app with a Google Play listing.', includedIn: [] },
   { id: 'ai-chat', group: 'Growth & marketing', name: 'Site assistant chat', price: 29, billing: 'monthly', display: '$29/mo', detail: 'Included in Turnkey Care.', includedIn: ['care'] },

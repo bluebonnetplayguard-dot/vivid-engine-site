@@ -19,7 +19,7 @@ For local development on your PC: Node.js 20+ (`site/` and `backend/` each have 
 | Service | Needed for | Where it goes |
 |---|---|---|
 | SMTP provider (Postmark, Resend, Amazon SES, or Google Workspace SMTP) | **Sign-up codes, password resets**, lead and deletion emails | `SMTP_*` |
-| Stripe | POS / invoice checkout | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
+| Square | POS / invoice checkout | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
 | Anthropic (console.anthropic.com) | Website chat, estimator, outreach, marketing drafts, logos | `ANTHROPIC_API_KEY` |
 | Google Cloud OAuth client | "Continue with Google" | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | Twilio (optional) | Text alerts to you for new leads | `TWILIO_*`, `OWNER_PHONE` |
@@ -70,7 +70,7 @@ Check that it's running: `curl -s https://vividenginesolutions.com/api/health` s
 
 | Service | Setting |
 |---|---|
-| Stripe webhook | Dashboard > Developers > Webhooks > endpoint `https://vividenginesolutions.com/api/webhooks/stripe`, events `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Signing secret goes in `STRIPE_WEBHOOK_SECRET` |
+| Square webhook | Dashboard > Developers > Webhooks > endpoint `https://vividenginesolutions.com/api/webhooks/square`, events `checkout.session.completed` and `checkout.session.async_payment_succeeded`. Signing secret goes in `STRIPE_WEBHOOK_SECRET` |
 | Google sign-in | Google Cloud Console > Credentials > OAuth client (Web). Redirect URI `https://vividenginesolutions.com/api/auth/google/callback` |
 | Email | Add your SMTP provider's SPF and DKIM records ([DNS.md](DNS.md)) |
 
@@ -153,12 +153,12 @@ Keep the app at **one instance**: live updates and the daily lead summary run in
 - Browser: signed in through the real login page as admin and as client. The dashboard, leads, invoices, POS, marketing drafts, live chat inbox, client portal and managed domain pages all loaded data. Rapid reloads kept the session (a bug found and fixed during testing). The portal was checked at phone width.
 
 ### Needs your configuration
-SMTP, Stripe (plus webhook), Anthropic key, Google OAuth client, optional Twilio and Spaces, DNS. See the tables above.
+SMTP, Square (plus webhook), Anthropic key, Google OAuth client, optional Twilio and Spaces, DNS. See the tables above.
 
 ### Could not be verified here
 - **The Docker build itself.** This PC has no Docker; the first `docker compose up --build` on the Droplet is that test. The same build steps passed outside Docker.
 - Live market research (Tavily, Exa, Perplexity) and Claude price extraction.
-- Real email delivery, Stripe checkout, Claude replies, Google sign-in and Twilio texts. All need live keys. Without keys, each one refuses with a clear message, and that was tested.
+- Real email delivery, Square checkout, Claude replies, Google sign-in and Twilio texts. All need live keys. Without keys, each one refuses with a clear message, and that was tested.
 - HTTPS and certificates (Nginx/Let's Encrypt run only on the server).
 - Offline/service-worker registration. The test browser doesn't allow service workers; the `sw.js` file is served correctly.
 - Your real Base44 data import (needs your exports). The importer was compiled, but not run on real files.

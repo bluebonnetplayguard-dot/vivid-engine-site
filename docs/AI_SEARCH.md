@@ -35,7 +35,7 @@ single question still costs about 70% or less of what they pay. The cost math is
 estimated spend reaches it. Each answer's estimated cost is stored in the `ai_usage` table.
 
 To change a price or limit, edit `backend/src/ai-search/plans.ts` and redeploy. The pricing page and checkout both
-read from that file. Existing subscribers keep their current Stripe price until you change it in Stripe.
+read from that file. Existing subscribers keep their current Square price until you change it in Square.
 
 ## Perplexity Agent API (one key, three model families)
 
@@ -69,10 +69,10 @@ the Decisions API would only re-classify leads the chat assistant already classi
    retired or over quota, the next one answers, then the Perplexity Agent API.
    The model names (`OPENAI_SEARCH_MODEL`, `GEMINI_SEARCH_MODEL`, `PERPLEXITY_SEARCH_MODEL`) have defaults;
    check them against each provider's current model list and change them if one is retired.
-2. **Stripe webhook events.** Dashboard → Developers → Webhooks → your endpoint
-   (`https://vividenginesolutions.com/api/webhooks/stripe`). Add `customer.subscription.updated` and
+2. **Square webhook events.** Dashboard → Developers → Webhooks → your endpoint
+   (`https://vividenginesolutions.com/api/webhooks/square`). Add `customer.subscription.updated` and
    `customer.subscription.deleted` next to the existing `checkout.session.completed`.
-3. **Stripe customer portal.** Dashboard → Settings → Billing → Customer portal. Turn it on, and allow
+3. **Square customer portal.** Dashboard → Settings → Billing → Customer portal. Turn it on, and allow
    cancelling and updating quantities (so Business owners can add seats).
 4. Restart the app: `cd /opt/vivid/infra && docker compose up -d app`.
 
@@ -83,7 +83,7 @@ the Decisions API would only re-classify leads the chat assistant already classi
 | Plans, limits, cost rates | `backend/src/ai-search/plans.ts` |
 | Asking Perplexity, Gemini, ChatGPT (in parallel, 20 s limit each, failures skipped) | `backend/src/ai-search/contributors.ts` |
 | Answer stream, limits, daily budget, conversations, team seats | `backend/src/ai-search/ai-search.service.ts` |
-| Stripe checkout, billing portal, webhook sync | `backend/src/ai-search/ai-search.billing.ts` |
+| Square checkout, billing portal, webhook sync | `backend/src/ai-search/ai-search.billing.ts` |
 | Endpoints under `/api/ai-search/*` | `backend/src/ai-search/ai-search.controller.ts` |
 | Database tables (new, additive) | `backend/src/migrations/002_ai_search.sql` |
 | Pages | `site/src/pages/AiSearch.jsx`, `AiSearchPricing.jsx`, `AiSearchAccount.jsx` |
@@ -111,9 +111,9 @@ Tested here:
 
 The end-to-end test (`backend/test/vivid seo.mjs`) has 11 new AI Search checks.
 
-Not testable here (needs the live keys): real answers from each provider, and a real Stripe checkout. After deploying:
+Not testable here (needs the live keys): real answers from each provider, and a real Square checkout. After deploying:
 1. Sign up with a test email, ask a question at `/ai-search`, and confirm the answer streams in with sources.
-2. In Stripe **test mode**, buy Starter with card `4242 4242 4242 4242`. `/ai-search/account` should show Starter within a few seconds, and the next answer should show a Perplexity badge.
+2. In Square **test mode**, buy Starter with card `4242 4242 4242 4242`. `/ai-search/account` should show Starter within a few seconds, and the next answer should show a Perplexity badge.
 3. Buy Business with 2 seats, add a teammate on the account page, sign in as the teammate, and confirm they get the Business plan.
 4. Watch spend: `docker compose exec postgres psql -U vivid -d vivid -c "select date(at), count(*), sum(cost_usd) from ai_usage group by 1 order by 1 desc limit 7"`
 

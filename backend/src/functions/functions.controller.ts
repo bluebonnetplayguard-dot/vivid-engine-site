@@ -80,15 +80,3 @@ export class FunctionsController {
     return fn.handler({ user, body, visitorId });
   }
 }
-
-@Controller('webhooks')
-export class WebhooksController {
-  constructor(private readonly billing: Billing) {}
-
-  @Public()
-  @Post('stripe')
-  @HttpCode(200)
-  stripe(@Req() req: Request & { rawBody?: Buffer }, @Headers('stripe-signature') signature: string) {
-    return this.billing.handleWebhook(req.rawBody, signature);
-  }
-}
