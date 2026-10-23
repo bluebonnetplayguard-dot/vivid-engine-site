@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vividenginesolutions.com/schemas/build-studio/model-spec-1.0.json",
+  "title": "Vivid Build Studio Model Spec",
+  "description": "Parametric model description written by the AI planner and built by the deterministic geometry engine. All lengths are strings with units (\"12ft\", \"16in\", \"1-1/2in\", \"38mm\", \"2ft 6in\") or expressions over parameters. Internally every length is an exact rational number of millimetres; floats are used only for display and rendering.",
+  "type": "object",
+  "required": ["specVersion", "project", "elements"],
+  "additionalProperties": false,
+  "properties": {
+    "specVersion": { "const": "1.0" },
+    "project": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "client": { "type": "string" },
+        "drawnBy": { "type": "string" },
+        "revision": { "type": "string" },
+        "description": { "type": "string" },
+        "display": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "units": { "enum": ["ft-in", "in", "mm", "cm", "m"] },
+            "fraction": { "enum": [8, 16, 32] }
+          }
+        }
+      }
+    },
+    "parameters": {
+      "description": "Named variables. Values are lengths, numbers or expressions over earlier parameters, e.g. \"floor(deck_width / joist_spacing) + 1\". Changing one rebuilds everything that depends on it.",
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/expr" }
+    },
+    "materials": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "kind": { "enum": ["lumber", "engineered-wood", "sheet", "steel", "aluminum", "concrete", "membrane", "insulation", "fastener", "other"] },
+          "grade": { "type": "string" },
+          "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+        }
+      }
+    },
+    "sections": {
+      "description": "Reusable rectangular cross-sections (actual sizes). Steel shapes use profile.",
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/section" }
+    },
+    "assemblies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "additionalProperties": false,
+        "properties": { "id": { "$ref": "#/$defs/id" }, "name": { "type": "string" }, "parent": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "elements": {
+      "type": "array",
+      "items": { "oneOf": [{ "$ref": "#/$defs/element" }, { "$ref": "#/$defs/pattern" }] }
+    },
+    "buildups": {
+      "description": "Layered constructions (walls, roofs, facades), generated layer by layer from the outside in.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/buildup" }
+    },
+    "joints": { "type": "array", "items": { "$ref": "#/$defs/joint" } },
+    "operations": { "type": "array", "items": { "$ref": "#/$defs/operation" } },
+    "constraints": { "type": "array", "items": { "$ref": "#/$defs/constraint" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$" },
+    "expr": { "type": ["string", "number"], "description": "Length with units, plain number, or expression." },
+    "vec3": { "type": "array", "items": { "$ref": "#/$defs/expr" }, "minItems": 3, "maxItems": 3 },
+    "section": {
+      "type": "object",
+      "required": ["width", "depth"],
+      "additionalProperties": false,
+      "properties": {
+        "nominal": { "type": "string", "description": "Trade name, e.g. 2x8." },
+        "width": { "$ref": "#/$defs/expr" },
+        "depth": { "$ref": "#/$defs/expr" }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "required": ["origin"],
+      "additionalProperties": false,
+      "properties": {
+        "origin": { "$ref": "#/$defs/vec3", "description": "World position of the element's minimum corner (anchor min-corner) or of its local origin (anchor local-origin)." },
+        "rotation": {
+          "description": "Local-to-world rotation. Local X = length, local Y = section width, local Z = section depth. Shortcuts: along-x, along-y, along-z. Or a 3x3 row-major matrix.",
+          "oneOf": [
+            { "enum": ["along-x", "along-y", "along-z", "along-x-on-edge"] },
+            { "type": "array", "items": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }, "minItems": 3, "maxItems": 3 }
+          ]
+        },
+        "anchor": { "enum": ["min-corner", "local-origin"], "default": "min-corner" }
+      }
+    },
+    "attributes": {
+      "type": "object",
+      "properties": {
+        "productionNumber": { "type": "string" },
+        "storey": { "type": "string" },
+        "group": { "type": "string" },
+        "finish": { "type": "string" }
+      }
+    },
+    "element": {
+      "type": "object",
+      "required": ["id", "type", "placement"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "type": { "enum": ["beam", "post", "plate", "panel", "sheet", "profile", "fastener"] },
+        "name": { "type": "string" },
+        "material": { "type": "string" },
+        "section": { "oneOf": [{ "type": "string" }, { "$ref": "#/$defs/section" }] },
+        "profile": { "type": "string", "description": "Steel shape designation for type profile, e.g. W8x18, HSS4x4x1/4." },
+        "length": { "$ref": "#/$defs/expr" },
+        "placement": { "$ref": "#/$defs/placement" },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "assembly": { "$ref": "#/$defs/id" }
+      }
+    },
+    "pattern": {
+      "type": "object",
+      "description": "Equal-spacing pattern of one template element along an axis. With endAt, the last member is placed at endAt (spacing on centre with a flush end member).",
+      "required": ["id", "pattern", "template", "axis", "spacing", "count"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "pattern": { "const": "linear" },
+        "template": { "$ref": "#/$defs/element" },
+        "axis": { "enum": ["x", "y", "z"] },
+        "spacing": { "$ref": "#/$defs/expr" },
+        "count": { "$ref": "#/$defs/expr" },
+        "endAt": { "$ref": "#/$defs/expr" }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "required": ["name", "material", "thickness", "fill"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "material": { "type": "string" },
+        "thickness": { "$ref": "#/$defs/expr" },
+        "fill": { "enum": ["solid", "members", "air"], "description": "solid = one sheet or panel; members = studs or battens at spacing; air = ventilated gap (not built)." },
+        "section": { "oneOf": [{ "type": "string" }, { "$ref": "#/$defs/section" }] },
+        "spacing": { "$ref": "#/$defs/expr" },
+        "orientation": { "enum": ["vertical", "horizontal"] },
+        "infill": { "type": "string", "description": "Material placed between members (e.g. insulation)." }
+      }
+    },
+    "buildup": {
+      "type": "object",
+      "required": ["id", "name", "origin", "width", "height", "layers"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string" },
+        "origin": { "$ref": "#/$defs/vec3" },
+        "width": { "$ref": "#/$defs/expr", "description": "Along world X." },
+        "height": { "$ref": "#/$defs/expr", "description": "Along world Z." },
+        "outsideFace": { "enum": ["-y", "+y"], "default": "-y" },
+        "layers": { "type": "array", "items": { "$ref": "#/$defs/layer" }, "minItems": 1 }
+      }
+    },
+    "joint": {
+      "type": "object",
+      "required": ["type", "members"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "type": { "enum": ["half-lap", "notch", "birdsmouth", "mortise-tenon", "dado", "bolted-plate", "welded-plate"] },
+        "members": { "type": "array", "items": { "$ref": "#/$defs/id" }, "minItems": 2, "maxItems": 2 },
+        "upper": { "$ref": "#/$defs/id", "description": "half-lap: member that keeps its top half (default: the first)." },
+        "params": { "type": "object" }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "type": { "enum": ["drill", "cut", "extrude", "revolve", "boolean", "pattern", "mirror", "chamfer", "fillet"] },
+        "targets": { "type": "array", "items": { "$ref": "#/$defs/id" } },
+        "at": { "$ref": "#/$defs/vec3" },
+        "axis": { "enum": ["x", "y", "z"] },
+        "diameter": { "$ref": "#/$defs/expr" },
+        "depth": { "$ref": "#/$defs/expr", "description": "Length, or \"through\"." },
+        "countersink": {
+          "type": "object",
+          "properties": { "diameter": { "$ref": "#/$defs/expr" }, "angle": { "type": "number" } }
+        },
+        "minEdgeDistance": { "type": "number", "description": "Multiple of diameter for the edge-distance check (default 1.5)." }
+      }
+    },
+    "constraint": {
+      "type": "object",
+      "required": ["type", "a"],
+      "properties": {
+        "type": { "enum": ["flush", "centered", "offset", "equal-spacing", "perpendicular"] },
+        "a": { "$ref": "#/$defs/id" },
+        "b": { "$ref": "#/$defs/id" },
+        "face": { "enum": ["top", "bottom", "left", "right", "front", "back"] },
+        "value": { "$ref": "#/$defs/expr" }
+      }
+    }
+  }
+}

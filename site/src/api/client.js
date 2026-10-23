@@ -279,7 +279,11 @@ async function readEvents(res, onEvent) {
 const aiSearch = {
   plans: () => request('GET', '/ai-search/plans'),
   me: () => request('GET', '/ai-search/me'),
-  threads: () => request('GET', '/ai-search/threads'),
+  threads: (query = {}) => request('GET', `/ai-search/threads${Object.keys(query).length ? `?${new URLSearchParams(query)}` : ''}`),
+  // { title?, pinned?, favorite?, space?, autoDeleteDays? } (paid plans; the server refuses otherwise)
+  updateThread: (id, patch) => request('PATCH', `/ai-search/threads/${encodeURIComponent(id)}`, { body: patch }),
+  spaces: () => request('GET', '/ai-search/spaces'),
+  exportAll: () => request('GET', '/ai-search/export'),
   thread: id => request('GET', `/ai-search/threads/${encodeURIComponent(id)}`),
   deleteThread: id => request('DELETE', `/ai-search/threads/${encodeURIComponent(id)}`),
   checkout: body => request('POST', '/ai-search/checkout', { body }),
@@ -290,12 +294,13 @@ const aiSearch = {
   // Streams an answer. onEvent receives: thread, status, contributor, sources, delta, done, error.
   // Optional: mode (search|build|create|biz), model (auto|claude|perplexity|gemini|combined),
   // private (never save), safeResults (standard|strict|off). The server ignores fields it doesn't support yet.
-  async ask({ question, threadId, signal, onEvent, mode, model, private: isPrivate, safeResults }) {
+  // history: recent turns for conversations the server doesn't save (free plans, private mode).
+  async ask({ question, threadId, signal, onEvent, mode, model, private: isPrivate, safeResults, history }) {
     await ensureToken();
     const send = () => fetch(`${API}/ai-search/ask`, {
       method: 'POST', credentials: 'same-origin', signal,
       headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
-      body: JSON.stringify({ question, threadId: threadId || undefined, mode, model, private: isPrivate || undefined, safeResults }),
+      body: JSON.stringify({ question, threadId: threadId || undefined, mode, model, private: isPrivate || undefined, safeResults, history: threadId ? undefined : history }),
     });
     let res;
     try {

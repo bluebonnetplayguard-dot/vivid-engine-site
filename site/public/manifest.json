@@ -7,7 +7,7 @@
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#03060D",
   "theme_color": "#03060D",
   "lang": "en-US",
@@ -19,7 +19,8 @@
   "edge_side_panel": { "preferred_width": 420 },
   "icons": [
     { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/store-icon-1024.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
     { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
@@ -27,7 +28,7 @@
     { "name": "Get a quote", "short_name": "Quote", "url": "/?source=app#inquiry", "icons": [{ "src": "/favicon-192.png", "sizes": "192x192" }] },
     { "name": "Pricing", "short_name": "Pricing", "url": "/pricing", "icons": [{ "src": "/favicon-192.png", "sizes": "192x192" }] },
     { "name": "Client Login", "short_name": "Login", "url": "/login?source=pwa-shortcut", "icons": [{ "src": "/favicon-192.png", "sizes": "192x192" }] },
-    { "name": "Domain Status", "short_name": "Domains", "url": "/portal/domain-status?source=pwa-shortcut", "icons": [{ "src": "/favicon-192.png", "sizes": "192x192" }] },
+    { "name": "Domain Status", "short_name": "Domains", "url": "/portal/domain?source=pwa-shortcut", "icons": [{ "src": "/favicon-192.png", "sizes": "192x192" }] },
     { "name": "Get Support", "short_name": "Support", "url": "/support?source=pwa-shortcut", "icons": [{ "src": "/favicon-192.png", "sizes": "192x192" }] }
   ]
 }

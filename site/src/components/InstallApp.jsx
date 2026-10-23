@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/api/client';
 
-export default function InstallApp() {
+// Shows an "Install the app" button when the browser can install the site
+// (Chrome/Edge on Android, Windows, Mac, ChromeOS) and Add to Home Screen
+// instructions on iPhone/iPad. Hidden once installed or when already running
+// as the installed app.
+export default function InstallApp({ className = '' }) {
   const [prompt, setPrompt] = useState(null);
   const [ios, setIos] = useState(false);
   const [installed, setInstalled] = useState(false);
@@ -26,5 +30,8 @@ export default function InstallApp() {
     setPrompt(null);
   }
   if (installed || (!prompt && !ios)) return null;
-  return <div className="mt-5"><button type="button" className="mk-btn" onClick={install} aria-describedby={hint ? 'install-hint' : undefined}>Install app</button>{hint && <p id="install-hint" className="mt-3" role="status">On iPhone or iPad, open this site in Safari, tap Share, then Add to Home Screen.</p>}</div>;
+  return <div className={className} style={{ marginTop: 20 }}>
+    <button type="button" className="engine-button engine-outline" onClick={install} aria-expanded={prompt ? undefined : hint} aria-controls={prompt ? undefined : 'install-hint'}>Install the app</button>
+    {hint && <p id="install-hint" role="status" style={{ marginTop: 12 }}>In Safari, tap the Share button, then <strong>Add to Home Screen</strong>.</p>}
+  </div>;
 }

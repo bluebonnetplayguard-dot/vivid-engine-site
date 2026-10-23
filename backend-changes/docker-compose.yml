@@ -1,0 +1,85 @@
+# Production stack on the DigitalOcean Droplet. The project folder lives at
+# /opt/vivid; run every docker compose command from /opt/vivid/infra.
+#   web      Nginx: HTTPS, rate limits, proxies everything to the app
+#   app      the website + API in one container (built from ../Dockerfile)
+#   postgres PostgreSQL 16, private to the Docker network (no public port), data on a named volume
+#   certbot  renews the Let's Encrypt certificate twice a day
+#   geometry Vivid Build Studio geometry service (optional: starts only with --profile studio)
+name: vivid
+
+services:
+  postgres:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./import:/import:ro
+
+  # Build Studio geometry service. Off by default so a normal deploy is unchanged. To switch it on:
+  #   set GEOMETRY_SERVICE_URL=http://geometry:8090 in .env, then: docker compose --profile studio up -d --build
+  geometry:
+    profiles: ["studio"]
+    build:
+      context: ../build-studio
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 768m
+    cpus: 1.0
+
+  web:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      - certs:/etc/letsencrypt:ro
+      - acme:/var/www/acme:ro
+      # Access/error logs on the host for fail2ban (see fail2ban/ and scripts/update-security.sh).
+      - ./logs/nginx:/var/log/nginx
+    # Reload every 6 hours so renewed certificates are picked up.
+    command: /bin/sh -c "while :; do sleep 6h; nginx -s reload; done & exec /docker-entrypoint.sh nginx -g 'daemon off;'"
+    depends_on:
+      - app
+
+  certbot:
+    image: certbot/certbot:v2.11.0
+    restart: unless-stopped
+    volumes:
+      - certs:/etc/letsencrypt
+      - acme:/var/www/acme
+    entrypoint: /bin/sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/acme --quiet; sleep 12h & wait $${!}; done"
+
+volumes:
+  pgdata:
+  certs:
+  acme:

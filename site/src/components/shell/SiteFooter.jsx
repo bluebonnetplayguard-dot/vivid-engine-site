@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import { FOOTER_COLUMNS } from '@/config/navigation';
 import { BUSINESS, whatsappUrl } from '@/config/business';
+import InstallApp from '@/components/InstallApp';
 
 export default function SiteFooter() {
   const { pathname } = useLocation();
@@ -21,5 +22,6 @@ export default function SiteFooter() {
       <span>© {new Date().getFullYear()} {BUSINESS.brandName}</span>
       <span className="vs-legal">{BUSINESS.legalLine}</span>
     </div>
+    <InstallApp className="vs-install" />
   </footer>;
 }

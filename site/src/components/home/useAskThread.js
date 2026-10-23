@@ -110,6 +110,8 @@ export default function useAskThread(account) {
       await api.aiSearch.ask({
         question, threadId, signal: controller.signal,
         mode, model, private: privateMode, safeResults: readSafe(),
+        // Unsaved conversations carry their own context; saved ones are read from the server by threadId.
+        history: messages.filter(m => !m.kind && !m.error && !m.status && m.content).slice(-12).map(m => ({ role: m.role, content: m.content })),
         onEvent: answerEventHandler(patchLast, {
           onThread: id => setThreadId(id),
           onDone: data => setMe?.(prev => (prev ? { ...prev, usage: data.usage } : prev)),
@@ -123,7 +125,7 @@ export default function useAskThread(account) {
       setBusy(false);
       if (access?.allowed && !privateMode) refresh?.();
     }
-  }, [busy, isAuthenticated, threadId, mode, model, privateMode, access?.allowed, refresh, setMe, askBuild, askStack]);
+  }, [busy, isAuthenticated, threadId, mode, model, privateMode, access?.allowed, refresh, setMe, askBuild, askStack, messages]);
 
   const stop = () => abortRef.current?.abort();
 

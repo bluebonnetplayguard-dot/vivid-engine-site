@@ -76,6 +76,7 @@ export default function AiSearch() {
     try {
       await api.aiSearch.ask({
         question, threadId, signal: controller.signal,
+        history: messages.filter(m => !m.error && !m.status && m.content).slice(-12).map(m => ({ role: m.role, content: m.content })),
         onEvent: answerEventHandler(patchLast, {
           onThread: id => { setThreadId(id); setParams({ thread: id }, { replace: true }); },
           onDone: data => setMe(prev => (prev ? { ...prev, usage: data.usage } : prev)),
@@ -90,7 +91,7 @@ export default function AiSearch() {
       refresh();
       inputRef.current?.focus();
     }
-  }, [busy, isAuthenticated, threadId, setParams, refresh]);
+  }, [busy, isAuthenticated, threadId, setParams, refresh, messages]);
 
   // A question passed in the link (from the homepage box or after signing in).
   useEffect(() => {

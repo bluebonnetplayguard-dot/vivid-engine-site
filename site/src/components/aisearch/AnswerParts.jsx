@@ -53,3 +53,14 @@ export function answerEventHandler(patchLast, { onThread, onDone } = {}) {
     else if (type === 'error') patchLast(() => ({ status: '', error: { message: data.message, code: data.code } }));
   };
 }
+
+// Turns a stream event into a patch for the last (assistant) message (used by AiSearchEmbed).
+export function applyEvent(type, data, message) {
+  if (type === 'status') return { status: data.stage === 'consulting' ? `Asking ${data.engines.join(', ')}…` : STATUS_TEXT[data.stage] || 'Working…' };
+  if (type === 'contributor') return { engines: [...(message.engines || []), { label: data.label, ok: data.ok }] };
+  if (type === 'sources') return { sources: data };
+  if (type === 'delta') return { content: message.content + data.text, status: '' };
+  if (type === 'done') return { status: '' };
+  if (type === 'error') return { status: '', error: { message: data.message } };
+  return {};
+}
