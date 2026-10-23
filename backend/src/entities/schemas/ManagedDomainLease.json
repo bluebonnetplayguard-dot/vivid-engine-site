@@ -1,0 +1,187 @@
+{
+  "name": "ManagedDomainLease",
+  "type": "object",
+  "properties": {
+    "companyId": {
+      "type": "string"
+    },
+    "clientUserId": {
+      "type": "string"
+    },
+    "clientEmail": {
+      "type": "string"
+    },
+    "clientBusinessName": {
+      "type": "string"
+    },
+    "serviceAgreementId": {
+      "type": "string"
+    },
+    "agreementVersion": {
+      "type": "string"
+    },
+    "domainName": {
+      "type": "string"
+    },
+    "domainStatus": {
+      "type": "string",
+      "enum": [
+        "Pending Registration",
+        "Domain Active",
+        "DNS Setup In Progress",
+        "Connected to Website",
+        "Renewal Pending",
+        "Expired",
+        "Suspended",
+        "Transfer Review Required",
+        "Cancelled",
+        "Archived"
+      ]
+    },
+    "registrarName": {
+      "type": "string"
+    },
+    "registrationDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "renewalDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "leaseStartDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "minimumTermEndDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "monthlyLeaseCents": {
+      "type": "number",
+      "default": 899
+    },
+    "billingStatus": {
+      "type": "string",
+      "enum": [
+        "Current",
+        "Payment Pending",
+        "Past Due",
+        "Cancellation Requested",
+        "CancelAtTermEnd",
+        "Cancelled",
+        "Owner Review Required"
+      ]
+    },
+    "billingInterval": {
+      "type": "string",
+      "default": "Monthly"
+    },
+    "nextBillingDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "autoRenewStatus": {
+      "type": "string",
+      "enum": [
+        "Managed Renewal Active",
+        "Renewal Review Required",
+        "Will Not Renew",
+        "Not Applicable"
+      ]
+    },
+    "transferEligibilityStatus": {
+      "type": "string",
+      "enum": [
+        "Not Requested",
+        "Subject To Agreement Review",
+        "Eligible For Owner Review",
+        "Transfer In Progress",
+        "Transfer Complete",
+        "Not Eligible"
+      ]
+    },
+    "dnsManagementStatus": {
+      "type": "string",
+      "enum": [
+        "Managed By Vivid",
+        "Client Managed",
+        "Third Party Managed",
+        "Setup Pending"
+      ]
+    },
+    "websiteConnectionStatus": {
+      "type": "string",
+      "enum": [
+        "Connected",
+        "Connection Pending",
+        "Not Connected",
+        "Under Maintenance",
+        "Not Applicable"
+      ]
+    },
+    "nameserverStatus": {
+      "type": "string"
+    },
+    "sslStatus": {
+      "type": "string",
+      "enum": [
+        "Active",
+        "Provisioning",
+        "Renewal Pending",
+        "Needs Attention",
+        "Not Applicable"
+      ]
+    },
+    "serviceStatus": {
+      "type": "string",
+      "enum": [
+        "Active",
+        "Pending",
+        "Past Due Review",
+        "Cancellation Review",
+        "Ended",
+        "Archived"
+      ]
+    },
+    "supportContactEmail": {
+      "type": "string",
+      "default": "info@vividenginesolutions.com"
+    },
+    "clientVisibleNotes": {
+      "type": "string"
+    },
+    "internalOwnerNotes": {
+      "type": "string"
+    },
+    "ownerUserId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "domainName",
+    "clientUserId"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

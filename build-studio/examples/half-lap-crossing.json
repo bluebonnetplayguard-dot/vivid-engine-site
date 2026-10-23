@@ -1,0 +1,105 @@
+{
+  "specVersion": "1.0",
+  "project": {
+    "name": "Half-lap beam crossing",
+    "drawnBy": "Vivid Build Studio",
+    "revision": "A",
+    "description": "Two 4x4 timbers crossing at mid-length, half-lapped flush and through-bolted.",
+    "display": {
+      "units": "ft-in",
+      "fraction": 16
+    }
+  },
+  "parameters": {
+    "member_length": "4ft",
+    "size": "3-1/2in"
+  },
+  "materials": {
+    "df": {
+      "name": "Douglas fir #1",
+      "kind": "lumber",
+      "color": "#c08b52"
+    }
+  },
+  "sections": {
+    "4x4": {
+      "nominal": "4x4",
+      "width": "size",
+      "depth": "size"
+    }
+  },
+  "elements": [
+    {
+      "id": "beam-a",
+      "type": "beam",
+      "name": "Beam A",
+      "material": "df",
+      "section": "4x4",
+      "length": "member_length",
+      "placement": {
+        "origin": [
+          "0",
+          "member_length / 2 - size / 2",
+          "0"
+        ],
+        "rotation": "along-x"
+      },
+      "attributes": {
+        "productionNumber": "A1"
+      }
+    },
+    {
+      "id": "beam-b",
+      "type": "beam",
+      "name": "Beam B",
+      "material": "df",
+      "section": "4x4",
+      "length": "member_length",
+      "placement": {
+        "origin": [
+          "member_length / 2 - size / 2",
+          "0",
+          "0"
+        ],
+        "rotation": "along-y"
+      },
+      "attributes": {
+        "productionNumber": "B1"
+      }
+    }
+  ],
+  "joints": [
+    {
+      "id": "lap-1",
+      "type": "half-lap",
+      "members": [
+        "beam-a",
+        "beam-b"
+      ],
+      "upper": "beam-a"
+    }
+  ],
+  "operations": [
+    {
+      "id": "bolt-hole",
+      "type": "drill",
+      "targets": [
+        "beam-a",
+        "beam-b"
+      ],
+      "at": [
+        "member_length / 2",
+        "member_length / 2",
+        "size"
+      ],
+      "axis": "z",
+      "diameter": "1/2in",
+      "depth": "through",
+      "countersink": {
+        "diameter": "1-3/8in",
+        "angle": 90
+      },
+      "minEdgeDistance": 1.5
+    }
+  ]
+}

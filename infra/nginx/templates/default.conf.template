@@ -1,0 +1,134 @@
+# Rendered by the nginx image at startup (${DOMAIN} comes from docker-compose).
+# Nginx terminates HTTPS and forwards everything to the app container, which
+# serves both the website and /api.
+
+limit_req_zone $binary_remote_addr zone=api:10m rate=20r/s;
+limit_req_zone $binary_remote_addr zone=auth:10m rate=3r/s;
+# Page loads: generous, but stops one address from hammering the server.
+limit_req_zone $binary_remote_addr zone=pages:10m rate=30r/s;
+# Open connections per address (a browser needs well under 20 with HTTP/2).
+limit_conn_zone $binary_remote_addr zone=perip:10m;
+limit_req_status 429;
+limit_conn_status 429;
+
+# Access log on disk (shared with the host) so fail2ban can ban addresses that keep
+# hitting rate limits or probing for exploits. Nginx's default log goes to stdout only.
+log_format vivid '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"';
+access_log /var/log/nginx/vivid-access.log vivid;
+error_log /var/log/nginx/vivid-error.log warn;
+
+# Scanner noise: WordPress/PHP probes, config files, source control. Nothing on this
+# site lives at these paths, so answer 444 (drop the connection) and let fail2ban count them.
+map $request_uri $is_probe {
+  default 0;
+  ~*^/(wp-admin|wp-login|wp-content|wp-includes|xmlrpc\.php|phpmyadmin|pma|administrator|cgi-bin|vendor/phpunit|\.git|\.svn|\.env|\.aws|\.ssh|\.DS_Store|server-status|actuator|console|_ignition|boaform|HNAP1|owa/|autodiscover|telescope|debug/default|solr/|jenkins) 1;
+  ~*\.(php|asp|aspx|jsp|cgi|sql|bak|old|orig|swp|ini|log|sh|yml|yaml|env)(\?|$) 1;
+}
+
+server_tokens off;
+gzip on;
+# text/javascript is what the app sends for .js files; without it the main script went out uncompressed.
+gzip_types text/plain text/css text/javascript application/javascript application/json application/manifest+json application/xml image/svg+xml;
+gzip_min_length 1024;
+gzip_comp_level 6;
+gzip_vary on;
+gzip_proxied any;
+
+# Plain HTTP: certificate challenges, everything else goes to HTTPS.
+server {
+  listen 80;
+  listen [::]:80;
+  server_name ${DOMAIN} www.${DOMAIN};
+  location /.well-known/acme-challenge/ { root /var/www/acme; }
+  location / { return 301 https://${DOMAIN}$request_uri; }
+}
+
+# www -> apex
+server {
+  listen 443 ssl;
+  listen [::]:443 ssl;
+  http2 on;
+  server_name www.${DOMAIN};
+  ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+  return 301 https://${DOMAIN}$request_uri;
+}
+
+server {
+  listen 443 ssl;
+  listen [::]:443 ssl;
+  http2 on;
+  server_name ${DOMAIN};
+
+  ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+  ssl_protocols TLSv1.2 TLSv1.3;
+  ssl_prefer_server_ciphers off;
+  ssl_session_cache shared:SSL:10m;
+  ssl_session_timeout 1d;
+
+  add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+  client_max_body_size 1m;
+  # Slow-request (Slowloris) protection: don't hold connections open for idle clients.
+  client_body_timeout 15s;
+  client_header_timeout 15s;
+  send_timeout 30s;
+  keepalive_timeout 65s;
+  limit_conn perip 20;
+
+  # Hidden files are never served, except the app-link files under /.well-known.
+  location ~ /\.(?!well-known/) { return 444; }
+  if ($is_probe) { return 444; }
+
+  proxy_http_version 1.1;
+  proxy_set_header Host $host;
+  # Only the address Nginx itself saw. $proxy_add_x_forwarded_for would keep any
+  # X-Forwarded-For the client sent, which the app must then be careful not to trust.
+  proxy_set_header X-Forwarded-For $remote_addr;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-Proto https;
+
+  # Live updates (server-sent events): no buffering, long timeout.
+  location = /api/events {
+    limit_req zone=api burst=20 nodelay;
+    proxy_pass http://app:8080;
+    proxy_set_header Connection '';
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 1h;
+  }
+
+  # AI Search answers stream word by word: no buffering, room for long research turns.
+  location = /api/ai-search/ask {
+    limit_req zone=api burst=10 nodelay;
+    proxy_pass http://app:8080;
+    proxy_set_header Connection '';
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 300s;
+  }
+
+  location /api/auth/ {
+    limit_req zone=auth burst=10 nodelay;
+    proxy_pass http://app:8080;
+  }
+
+  location /api/ {
+    limit_req zone=api burst=40 nodelay;
+    proxy_pass http://app:8080;
+    proxy_read_timeout 180s; # AI requests can take a while
+  }
+
+  # Stripe calls this; it must not be rate limited by address (Stripe retries from many IPs).
+  location = /api/webhooks/stripe {
+    proxy_pass http://app:8080;
+  }
+
+  location / {
+    limit_req zone=pages burst=60 nodelay;
+    proxy_pass http://app:8080;
+  }
+}
