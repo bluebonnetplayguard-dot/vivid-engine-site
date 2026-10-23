@@ -1,0 +1,90 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { api } from '@/api/client';
+import { answerEventHandler } from '@/components/aisearch/AnswerParts';
+import { SAFE_KEY } from '@/components/shell/AppShell';
+
+const readSafe = () => { try { return localStorage.getItem(SAFE_KEY) || 'standard'; } catch { return 'standard'; } };
+
+// One AI Search conversation on the home page: ask, stream, follow up, reset, reopen a saved thread.
+export default function useAskThread(account) {
+  const { isAuthenticated, authChecked, access, refresh, setMe } = account;
+  const [params, setParams] = useSearchParams();
+  const [messages, setMessages] = useState([]);
+  const [threadId, setThreadId] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [privateMode, setPrivateMode] = useState(false);
+  const [mode, setMode] = useState('search');
+  const [model, setModel] = useState('auto');
+  const abortRef = useRef(null);
+  const autoAsked = useRef(false);
+
+  const patchLast = fn => setMessages(list => list.map((m, i) => (i === list.length - 1 ? { ...m, ...fn(m) } : m)));
+
+  const ask = useCallback(async raw => {
+    const question = raw.trim().slice(0, 4000);
+    if (!question || busy) return;
+    // Visitors who aren't signed in sign in first and land back here with the question answered.
+    if (!isAuthenticated) { api.auth.redirectToLogin(`/?aiq=${encodeURIComponent(question.slice(0, 1500))}`); return; }
+    setBusy(true);
+    setMessages(list => [...list, { role: 'user', content: question }, { role: 'assistant', content: '', status: 'Starting…', engines: [], sources: [], question }]);
+    const controller = new AbortController();
+    abortRef.current = controller;
+    try {
+      await api.aiSearch.ask({
+        question, threadId, signal: controller.signal,
+        mode, model, private: privateMode, safeResults: readSafe(),
+        onEvent: answerEventHandler(patchLast, {
+          onThread: id => setThreadId(id),
+          onDone: data => setMe?.(prev => (prev ? { ...prev, usage: data.usage } : prev)),
+        }),
+      });
+    } catch (e) {
+      if (e?.name === 'AbortError') patchLast(m => ({ status: '', content: m.content || '_Stopped._' }));
+      else patchLast(() => ({ status: '', error: { message: e?.message || 'Something went wrong.', code: e?.code } }));
+    } finally {
+      abortRef.current = null;
+      setBusy(false);
+      if (access?.allowed && !privateMode) refresh?.();
+    }
+  }, [busy, isAuthenticated, threadId, mode, model, privateMode, access?.allowed, refresh, setMe]);
+
+  const stop = () => abortRef.current?.abort();
+
+  const reset = useCallback(() => {
+    if (busy) abortRef.current?.abort();
+    setMessages([]); setThreadId(null);
+  }, [busy]);
+
+  const openThread = useCallback(async id => {
+    if (busy || !id) return;
+    try {
+      const t = await api.aiSearch.thread(id);
+      setThreadId(id);
+      setMessages(t.messages.flatMap((m, i, all) => (m.role === 'user'
+        ? [{ role: 'user', content: m.content }]
+        : [{ role: 'assistant', content: m.content, sources: m.sources, engines: m.contributors, question: all[i - 1]?.content || '' }])));
+      window.scrollTo({ top: 0 });
+    } catch { /* thread gone or not allowed */ }
+  }, [busy]);
+
+  // Back from sign-in with a question in the link (/?aiq=...).
+  useEffect(() => {
+    const q = params.get('aiq');
+    if (!authChecked || autoAsked.current || !q) return;
+    autoAsked.current = true;
+    params.delete('aiq'); setParams(params, { replace: true });
+    if (isAuthenticated) ask(q);
+  }, [authChecked, isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Free and guest conversations aren't saved: warn before the tab closes with one open.
+  useEffect(() => {
+    const unsaved = messages.length > 0 && (!access?.allowed || privateMode);
+    if (!unsaved) return undefined;
+    const warn = e => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [messages.length, access?.allowed, privateMode]);
+
+  return { messages, threadId, busy, ask, stop, reset, openThread, privateMode, setPrivateMode, mode, setMode, model, setModel };
+}

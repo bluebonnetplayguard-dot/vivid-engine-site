@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["LNM534GVS2.com.base6a9620cbd28f8dc991297e69.app"],
+        "components": [
+          {
+            "/": "/*",
+            "comment": "Matches all URLs"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["LNM534GVS2.com.base6a9620cbd28f8dc991297e69.app"]
+  },
+  "activitycontinuation": {
+    "apps": ["LNM534GVS2.com.base6a9620cbd28f8dc991297e69.app"]
+  }
+}

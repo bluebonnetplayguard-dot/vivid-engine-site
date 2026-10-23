@@ -1,0 +1,108 @@
+/* Vivid AI Search. Uses the engine-site design tokens (engine.css). */
+.ais-page{min-height:calc(100vh - 68px);display:flex}
+.ais-side{width:260px;flex:none;border-right:1px solid var(--line);padding:16px 12px;display:none;flex-direction:column;gap:8px;max-height:calc(100vh - 68px);position:sticky;top:68px;overflow-y:auto}
+@media (min-width:900px){.ais-side{display:flex}}
+.ais-side h2{font-size:.74rem!important;letter-spacing:.2em;text-transform:uppercase;color:var(--glow)!important;margin:8px 4px 4px!important}
+.ais-new{display:flex;align-items:center;gap:8px;justify-content:center;border:1px solid var(--line-strong);border-radius:12px;padding:10px;color:var(--chrome);background:transparent;cursor:pointer;font:inherit;font-weight:600}
+.ais-new:hover{background:var(--panel)}
+.ais-thread{display:flex;align-items:center;gap:6px;border-radius:10px}
+.ais-thread button.ais-thread-open{flex:1;min-width:0;text-align:left;background:transparent;border:0;color:var(--text);padding:8px 10px;border-radius:10px;cursor:pointer;font:inherit;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ais-thread.is-active button.ais-thread-open,.ais-thread button.ais-thread-open:hover{background:var(--panel);color:var(--chrome)}
+.ais-thread .ais-del{background:transparent;border:0;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;display:inline-flex}
+.ais-thread .ais-del:hover{color:var(--sunset)}
+.ais-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.ais-scroll{flex:1;padding:24px 16px 160px;max-width:860px;width:100%;margin:0 auto}
+.ais-hero{text-align:center;padding:8vh 0 24px}
+.ais-hero h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800}
+.ais-hero p{margin:14px auto 0!important;max-width:620px;color:var(--muted)}
+.ais-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:22px}
+.ais-chip{border:1px solid var(--line-strong);background:var(--deep);color:var(--text);border-radius:999px;padding:8px 14px;font:inherit;font-size:.88rem;cursor:pointer;text-align:left}
+.ais-chip:hover{border-color:var(--glow);color:var(--chrome)}
+.ais-plan{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin-top:18px;font-size:.85rem;color:var(--muted)}
+.ais-plan a{color:var(--glow)}
+.ais-badge{border:1px solid var(--line-strong);border-radius:999px;padding:3px 10px;color:var(--chrome);font-size:.78rem;font-weight:600}
+.ais-msg{margin:22px 0}
+.ais-user{margin-left:auto;max-width:85%;width:fit-content;background:var(--panel);border:1px solid var(--line);color:var(--chrome);border-radius:16px 16px 4px 16px;padding:12px 16px;white-space:pre-wrap;overflow-wrap:anywhere}
+.ais-answer{color:var(--text);overflow-wrap:anywhere}
+.ais-answer h1,.ais-answer h2,.ais-answer h3{margin:18px 0 8px!important;font-size:1.15rem!important}
+.ais-answer p{margin:0 0 12px!important}
+.ais-answer ul,.ais-answer ol{margin:0 0 12px;padding-left:22px}
+.ais-answer li{margin:4px 0}
+.ais-answer a{color:var(--glow);text-decoration:underline!important}
+.ais-answer code{background:var(--deep);border:1px solid var(--line);border-radius:6px;padding:1px 5px;font-size:.88em}
+.ais-answer pre{background:var(--deep);border:1px solid var(--line);border-radius:12px;padding:14px;overflow-x:auto;margin:0 0 14px}
+.ais-answer pre code{border:0;padding:0;background:transparent}
+.ais-answer table{border-collapse:collapse;margin:0 0 14px;display:block;overflow-x:auto}
+.ais-answer th,.ais-answer td{border:1px solid var(--line);padding:6px 10px}
+.ais-status{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.9rem;margin:8px 0 12px}
+.ais-dot{width:8px;height:8px;border-radius:50%;background:var(--glow);animation:ais-pulse 1s ease-in-out infinite}
+@keyframes ais-pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.ais-dot{animation:none}}
+.ais-engines{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.ais-engine{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;border:1px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted)}
+.ais-engine.ok{color:var(--chrome);border-color:var(--line-strong)}
+.ais-sources{display:grid;gap:6px;margin-top:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.ais-source{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--text);font-size:.82rem;background:var(--deep)}
+.ais-source:hover{border-color:var(--line-strong);color:var(--chrome)}
+.ais-source b{color:var(--glow);font-weight:700}
+.ais-source span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ais-source small{display:block;color:var(--muted)}
+.ais-error{border:1px solid color-mix(in srgb,var(--sunset) 60%,transparent);background:color-mix(in srgb,var(--sunset) 10%,transparent);color:var(--chrome);border-radius:12px;padding:12px 14px;margin:12px 0}
+.ais-error a{color:var(--glow);text-decoration:underline}
+.ais-composer{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--void) 30%);z-index:30}
+@media (min-width:900px){.ais-composer{left:260px}}
+.ais-box{max-width:860px;margin:0 auto;display:flex;gap:8px;align-items:flex-end;background:var(--deep);border:1px solid var(--line-strong);border-radius:20px;padding:8px 8px 8px 16px;box-shadow:0 0 28px color-mix(in srgb,var(--electric) 18%,transparent)}
+.ais-box:focus-within{border-color:var(--glow)}
+.ais-box textarea{flex:1;min-width:0;resize:none;border:0;outline:0;background:transparent;color:var(--chrome);font:inherit;font-size:1rem;line-height:1.5;padding:8px 0;max-height:200px}
+.ais-box textarea::placeholder{color:var(--muted)}
+.ais-send{flex:none;width:44px;height:44px;border-radius:14px;border:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:linear-gradient(180deg,var(--glow),var(--electric));color:var(--void)}
+.ais-send:disabled{opacity:.4;cursor:not-allowed}
+.ais-stop{background:var(--panel);color:var(--chrome);border:1px solid var(--line-strong)}
+.ais-note{max-width:860px;margin:6px auto 0;text-align:center;font-size:.75rem;color:var(--muted)}
+/* pricing and account */
+.ais-wrap{max-width:1180px;margin:0 auto;padding:48px 24px 80px}
+.ais-head{text-align:center;max-width:720px;margin:0 auto 36px}
+.ais-head h1{font-size:clamp(2rem,4.5vw,3rem);font-weight:800}
+.ais-head p{margin-top:12px!important;color:var(--muted)}
+.ais-grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.ais-card{position:relative;display:flex;flex-direction:column;background:var(--deep);border:1px solid var(--line);border-radius:20px;padding:24px}
+.ais-card.is-featured{border-color:var(--glow);box-shadow:0 0 30px color-mix(in srgb,var(--electric) 25%,transparent)}
+.ais-card .ais-ribbon{position:absolute;top:-12px;left:20px;background:linear-gradient(90deg,var(--electric),var(--glow));color:var(--void);font-size:.7rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;border-radius:999px;padding:4px 10px}
+.ais-card h2{font-size:1.4rem!important}
+.ais-card .ais-tag{color:var(--muted);font-size:.9rem;margin-top:6px!important;min-height:2.6em}
+.ais-price{margin:16px 0 4px;display:flex;align-items:baseline;gap:6px}
+.ais-price strong{font-size:2.4rem;color:var(--chrome);font-family:var(--font-heading)}
+.ais-price span{color:var(--muted);font-size:.9rem}
+.ais-model{font-size:.82rem;color:var(--glow);font-weight:600}
+.ais-card ul{list-style:none;padding:0;margin:16px 0 20px;display:grid;gap:8px;font-size:.9rem;flex:1}
+.ais-card li{display:flex;gap:8px;align-items:flex-start}
+.ais-card li svg{flex:none;color:var(--glow);margin-top:3px}
+.ais-field{display:grid;gap:6px;margin-bottom:12px;font-size:.85rem;color:var(--muted)}
+.ais-field input{background:var(--void);border:1px solid var(--line-strong);border-radius:10px;padding:10px 12px;color:var(--chrome);font:inherit}
+.ais-card .engine-button{width:100%}
+.ais-fine{margin-top:28px;text-align:center;color:var(--muted);font-size:.85rem}
+.ais-fine a{color:var(--glow)}
+.ais-panel{background:var(--deep);border:1px solid var(--line);border-radius:20px;padding:24px;margin-bottom:18px}
+.ais-panel h2{font-size:1.2rem!important;margin-bottom:12px!important}
+.ais-meter{height:8px;border-radius:99px;background:var(--panel);overflow:hidden;margin:6px 0 14px}
+.ais-meter i{display:block;height:100%;background:linear-gradient(90deg,var(--electric),var(--glow))}
+.ais-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:10px 0}
+.ais-row:first-of-type{border-top:0}
+.ais-inline{display:flex;gap:8px;flex-wrap:wrap}
+.ais-inline input{flex:1;min-width:200px;background:var(--void);border:1px solid var(--line-strong);border-radius:10px;padding:10px 12px;color:var(--chrome);font:inherit}
+.ais-ok{border:1px solid var(--line-strong);background:color-mix(in srgb,var(--electric) 12%,transparent);color:var(--chrome);border-radius:12px;padding:12px 14px;margin-bottom:18px}
+/* homepage promo */
+.ais-promo{display:grid;gap:22px;align-items:center}
+@media (min-width:900px){.ais-promo{grid-template-columns:1fr 1fr}}
+.ais-promo p{color:var(--text);margin-top:12px!important}
+.ais-promo form{display:flex;gap:8px;background:var(--deep);border:1px solid var(--line-strong);border-radius:999px;padding:6px 6px 6px 18px}
+.ais-promo input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--chrome);font:inherit}
+.ais-promo small{display:block;margin-top:10px;color:var(--muted)}
+
+.ais-locked{margin:4px 2px;padding:11px 12px;border:1px dashed rgba(255,210,122,.38);border-radius:12px;background:rgba(255,210,122,.04);font-size:.82rem;color:var(--muted)}
+.ais-locked b{display:flex;align-items:center;gap:7px;color:var(--chrome);margin-bottom:3px}
+.ais-locked b svg{color:#ffd27a;flex:none}
+.ais-locked span{display:block;margin-bottom:8px}
+.ais-locked a{color:var(--glow);font-weight:700}
+.ais-ro{font-size:.8rem;color:var(--muted);margin:2px 4px!important}
+.ais-ro a{color:var(--glow)}
