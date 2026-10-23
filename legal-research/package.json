@@ -1,0 +1,19 @@
+{
+  "name": "vivid-legal-research",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Vivid Engine Legal Research: search and answers built only on public, properly licensed legal data.",
+  "engines": { "node": ">=22.6" },
+  "scripts": {
+    "test": "node --experimental-strip-types --no-warnings --test test/*.test.ts",
+    "check:index": "node --experimental-strip-types --no-warnings src/index-guard.ts data/index",
+    "ingest:cap:tx:dry": "node --experimental-strip-types --no-warnings src/cap/ingest-cap.ts --jurisdiction Tex. --dry-run",
+    "ingest:cap:tx": "node --experimental-strip-types --no-warnings src/cap/ingest-cap.ts --jurisdiction Tex.",
+    "db:schema": "psql \"$DATABASE_URL\" -f db/schema.sql",
+    "db:load": "node --experimental-strip-types --no-warnings src/store/load-postgres.ts data/index/cap"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}

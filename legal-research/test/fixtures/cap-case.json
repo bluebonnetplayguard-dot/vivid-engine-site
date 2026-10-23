@@ -1,0 +1,28 @@
+{
+ "id": 4242,
+ "name": "Smith v. Jones",
+ "name_abbreviation": "Smith v. Jones",
+ "decision_date": "2010-05-20",
+ "citations": [
+  {
+   "type": "official",
+   "cite": "300 S.W.3d 100"
+  }
+ ],
+ "court": {
+  "name": "Court of Appeals of Texas"
+ },
+ "jurisdiction": {
+  "name": "Tex."
+ },
+ "casebody": {
+  "head_matter": "HEADNOTE TEXT THAT MUST NOT BE INGESTED. Syllabus by the publisher.",
+  "opinions": [
+   {
+    "type": "majority",
+    "author": "Doe, J.",
+    "text": "First paragraph of the opinion.\n\nSecond paragraph cites Tex. Prop. Code \u00a7 24.005 and 123 S.W.3d 456."
+   }
+  ]
+ }
+}
