@@ -1,0 +1,5 @@
+# How to report a security problem with vividenginesolutions.com (RFC 9116)
+Contact: mailto:info@vividenginesolutions.com
+Expires: 2027-10-01T00:00:00.000Z
+Preferred-Languages: en, es
+Canonical: https://vividenginesolutions.com/.well-known/security.txt

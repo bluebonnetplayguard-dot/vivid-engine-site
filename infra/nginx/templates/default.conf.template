@@ -72,6 +72,10 @@ server {
   add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
   add_header X-Content-Type-Options "nosniff" always;
   add_header X-Frame-Options "SAMEORIGIN" always;
+  # Content-Security-Policy in REPORT-ONLY mode: browsers log what it would block (DevTools console) but nothing breaks.
+  # Watch the console on checkout and sign-in for a week, add any missing source below, then rename the header to
+  # Content-Security-Policy to enforce it.
+  add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline' https://web.squarecdn.com https://sandbox.web.squarecdn.com https://js.squareup.com https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://web.squarecdn.com https://sandbox.web.squarecdn.com; font-src 'self' data: https://fonts.gstatic.com https://square-fonts-production-f.squarecdn.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.squareup.com https://*.squareupsandbox.com https://*.squarecdn.com https://accounts.google.com; frame-src https://*.squarecdn.com https://*.squareup.com https://*.squareupsandbox.com https://accounts.google.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'" always;
   # The app (helmet) sends these two as well; keep only the copies above so each header appears once.
   proxy_hide_header X-Content-Type-Options;
   proxy_hide_header X-Frame-Options;
