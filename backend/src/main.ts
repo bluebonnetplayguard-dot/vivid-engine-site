@@ -47,6 +47,7 @@ async function bootstrap() {
     });
     app.useStaticAssets(staticDir, {
       index: false,
+      redirect: false, // prerendered pages are folders (dist/areas/katy/); without this /areas/katy redirects to /areas/katy/ and back, forever
       dotfiles: 'allow', // /.well-known/assetlinks.json
       setHeaders: (res, path) => {
         if (/[\\/]assets[\\/]/.test(path)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
