@@ -20,7 +20,9 @@ jobs:
           GITLEAKS_VERSION: 8.21.2
         run: |
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
-          ./gitleaks git --redact --no-banner --config .gitleaks.toml --report-format json --report-path gitleaks.json 2>&1 | tee gitleaks.log; rc=${PIPESTATUS[0]}
+          # Scan this branch's own commits (not every other branch in the repository).
+          RANGE="origin/main..HEAD"; [ "${GITHUB_REF_NAME}" = "main" ] && RANGE="-1"
+          ./gitleaks git --log-opts="$RANGE" --redact --no-banner --config .gitleaks.toml --report-format json --report-path gitleaks.json 2>&1 | tee gitleaks.log; rc=${PIPESTATUS[0]}
           # Findings are redacted (file, line and rule only); repeat them as annotations so they show on the pull request.
           if [ -s gitleaks.json ]; then jq -r '.[] | "\(.RuleID) \(.File):\(.StartLine) commit \(.Commit[0:7])"' gitleaks.json | head -30 | while read -r l; do echo "::error::gitleaks $l"; done; fi
           sed -r 's/\x1b\[[0-9;]*m//g' gitleaks.log | grep -E "RuleID|File|Line|Commit|leaks found|WRN|ERR|error" | head -40 | while read -r l; do echo "::error::gitleaks $l"; done

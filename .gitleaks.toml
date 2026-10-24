@@ -12,3 +12,6 @@ paths = [
   '''^backend/test/''',
   '''package-lock\.json$''',
 ]
+regexes = [
+  '''vivid\.[a-z]+\.prices\.v[0-9]+''',   # a localStorage key name, not a key
+]
