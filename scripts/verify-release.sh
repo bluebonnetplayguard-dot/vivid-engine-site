@@ -7,6 +7,8 @@ cd "$(dirname "$0")/.."
 step() { printf '\n==> %s\n' "$*"; }
 cleanup() { docker rm -f vivid-smoke vivid-smoke-db >/dev/null 2>&1 || true; docker network rm vivid-smoke-net >/dev/null 2>&1 || true; }
 trap cleanup EXIT
+# On failure say which command stopped (shown as an annotation in GitHub Actions). Variables are not expanded, so no secrets.
+trap 'rc=$?; echo "::error::verify-release stopped at line $LINENO: $BASH_COMMAND (exit $rc)"; { docker logs --tail 25 vivid-smoke 2>&1 || true; } | cut -c1-200 | while read -r l; do echo "::error::app log: $l"; done' ERR
 
 step "site: install, lint, build (with prerender)";  npm --prefix site ci --no-audit --no-fund && npm --prefix site run lint && npm --prefix site run build
 step "site: retired names";                          npm --prefix site run check:names
