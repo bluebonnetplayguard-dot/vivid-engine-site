@@ -8,7 +8,7 @@ import AdditionalOptions from '@/components/pricing/AdditionalOptions';
 import '@/components/engine/engine.css';
 import './pricing.css';
 import {
-  APP_BUILDER_PLANS, BUILD_PACKAGES, BUNDLES, DEFAULT_CYCLE, DISCOUNTS, HISTORY_ROW_LABEL, PARTNER_TIERS, PRICING_AS_OF, PRODUCTION, SEARCH_PLANS, WEBSITE_PLANS,
+  APP_BUILDER_PLANS, BUILD_PACKAGES, BUNDLES, DEFAULT_CYCLE, DISCOUNTS, HISTORY_ROW_LABEL, PARTNER_TIERS, PRODUCTION, SEARCH_PLANS, WEBSITE_PLANS,
   benchmarkApps, benchmarkAverage, bundlePrice, firstMonthPrice, formatUsd, historyLabel, nonprofitPrice, partnerPrice, planById, planPrice, savingsVsAverage, twoYearPrice, UNDERCUT_PERCENT,
 } from '@/config/pricing-catalog';
 import { SELF_SERVE_LIVE, consultationHref, earlyAccessHref, partnerApplyHref } from '@/config/launch';

@@ -2,7 +2,6 @@ import { Link, useLocation } from 'react-router-dom';
 import SEO from '@/components/seo/SEO';
 import { seoProps } from '@/seo/pageSeo';
 import { pageCopy } from '@/config/pages';
-import { BUSINESS } from '@/config/business';
 import { WhatsAppLink } from '@/components/shell/WhatsAppButton';
 import PageNotFound from '@/lib/PageNotFound';
 import '@/components/content/content.css';
