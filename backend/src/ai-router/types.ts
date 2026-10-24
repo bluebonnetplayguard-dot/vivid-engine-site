@@ -26,6 +26,7 @@ export interface RouterRequest {
   attachments?: Attachment[];
   planId: string;                 // decides which engines, depths and models are allowed
   extraContext?: string;          // already-sanitised notes (for example remembered conversations); passed as data
+  preferences?: string[];         // the person's own settings in plain words ("Answer in Spanish."); kept for the Combined merge
   signal?: AbortSignal;
   trace?: Trace;                  // who and what this call is for, for the usage log (never the question itself)
 }

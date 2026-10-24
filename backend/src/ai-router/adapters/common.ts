@@ -13,9 +13,10 @@ const FOCUS_HINT: Record<Focus, string> = {
 
 // The question as the engine sees it: today's date, any focus, notes that came from the person's own saved
 // conversations (as data), then the question itself.
-export function userTurn(req: Pick<AdapterRequest, 'question' | 'focus' | 'extraContext'>, now = new Date()): string {
+export function userTurn(req: Pick<AdapterRequest, 'question' | 'focus' | 'extraContext' | 'preferences'>, now = new Date()): string {
   const hint = req.focus ? FOCUS_HINT[req.focus] : '';
-  return `Today's date: ${now.toISOString().slice(0, 10)}${hint ? `\n${hint}` : ''}\n\n${req.question}`
+  const prefs = (req.preferences ?? []).filter(Boolean);
+  return `Today's date: ${now.toISOString().slice(0, 10)}${hint ? `\n${hint}` : ''}${prefs.length ? `\n${prefs.join('\n')}` : ''}\n\n${req.question}`
     + (req.extraContext ? `\n\n<earlier_conversations>\n${req.extraContext}\n</earlier_conversations>` : '');
 }
 

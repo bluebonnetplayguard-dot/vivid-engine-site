@@ -166,11 +166,16 @@ export class AiSearchService {
     } else {
       if (config.GUEST_QUESTIONS_PER_DAY <= 0) throw new ApiError(401, 'Sign in to search.', { code: 'AUTH_REQUIRED' });
       const ip = req.ip || 'unknown';
-      await this.limiter.enforce([
-        { scope: 'ai-guest-day', id: ip, max: config.GUEST_QUESTIONS_PER_DAY, windowSec: 86400 },
-        { scope: 'ai-guest-minute', id: ip, max: 3, windowSec: 60 },
-        { scope: 'ai-app-minute', id: 'all', max: 300, windowSec: 60 },
-      ], `You have used today's free searches. Create a free account to keep going.`);
+      try {
+        await this.limiter.enforce([
+          { scope: 'ai-guest-day', id: ip, max: config.GUEST_QUESTIONS_PER_DAY, windowSec: 86400 },
+          { scope: 'ai-guest-minute', id: ip, max: 3, windowSec: 60 },
+          { scope: 'ai-app-minute', id: 'all', max: 300, windowSec: 60 },
+        ], `You have used today's free searches. Create a free account to keep going.`);
+      } catch (e) {
+        if (e instanceof ApiError && e.getStatus() === 429) throw new ApiError(429, e.message, { code: 'GUEST_LIMIT' });
+        throw e;
+      }
       who = { id: `guest:${createHmac('sha256', config.PUBLIC_CLIENT_SECRET).update(`guest:${ip}`).digest('hex').slice(0, 20)}`, email: null };
       ent = { tier: tierById('search_free'), planId: 'search_free', subscription: null, role: 'free' };
     }
@@ -227,6 +232,10 @@ export class AiSearchService {
         .slice(-tier.historyTurns)
         .map((m: any) => ({ role: m.role as 'user' | 'assistant', content: String(m.content).slice(0, 8000) }));
     }
+    // The person's own settings, passed to the engine as preferences (never as instructions from a web page).
+    const prefs: string[] = [];
+    if (body?.lang === 'es') prefs.push('Answer in Spanish.');
+    if (body?.safeResults === 'strict') prefs.push('Keep the answer and sources suitable for children.');
     // Memory (Search Max / All-In-One, only when switched on): a few earlier answers on the same subject, as data.
     const remembered = user ? await this.hist.memory(user, question, thread?.id ?? null) : [];
     while (history.length && history[0].role !== 'user') history.shift();
@@ -260,7 +269,7 @@ export class AiSearchService {
     let answered: Awaited<ReturnType<AiRouterService['answer']>> | null = null;
     let followCost = 0;
     try {
-      answered = await this.ai.answer(ctx, { ...base, history, extraContext: remembered.length ? remembered.map(r => `<note>${r}</note>`).join('\n') : undefined, signal: abort.signal }, {
+      answered = await this.ai.answer(ctx, { ...base, history, preferences: prefs, extraContext: remembered.length ? remembered.map(r => `<note>${r}</note>`).join('\n') : undefined, signal: abort.signal }, {
         onDelta: t => { streamed += t; send('delta', { text: t }); },
         onStatus: (stage, detail) => send(stage === 'routing' ? 'routing' : 'status', { stage, ...detail }),
         onSources: s => send('sources', s.slice(0, 16)),

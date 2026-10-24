@@ -237,12 +237,12 @@ test('margin guard: every paid plan caps cost at no more than price / 2.5; free 
   }
   for (const id of ['starter', 'plus', 'pro', 'max', 'business']) { const pol = policy.policyFor(id); assert.ok(credits.marginCheck(pol.priceMonthlyUsd, policy.monthlyCapUsd(pol), 2.5).ok, id); }
   assert.equal(policy.monthlyCapUsd(policy.policyFor('search_free')), policy.FREE_ALLOWANCE_USD);
-  assert.equal(policy.monthlyCapUsd(policy.policyFor('search_pro')), 5.91);       // $14.79 / 2.5
-  assert.equal(policy.monthlyCapUsd(policy.policyFor('search_max')), 58.11);      // $145.29 / 2.5
+  assert.equal(policy.monthlyCapUsd(policy.policyFor('search_pro')), 6.26);       // $15.66 / 2.5, rounded down
+  assert.equal(policy.monthlyCapUsd(policy.policyFor('search_max')), 65.73);      // $164.33 / 2.5, rounded down
 });
 test('margin guard: anything priced below the multiplier times its cost is flagged', () => {
-  assert.equal(credits.marginCheck(14.79, 5.91, 2.5).ok, true);
-  const bad = credits.marginCheck(14.79, 7, 2.5);
+  assert.equal(credits.marginCheck(15.66, 6.26, 2.5).ok, true);
+  const bad = credits.marginCheck(15.66, 7, 2.5);
   assert.equal(bad.ok, false); assert.equal(bad.requiredPriceUsd, 17.5);
   assert.equal(credits.marginCheck(10, 0, 2.5).ok, true);
 });
@@ -274,8 +274,8 @@ test('ledger: the 80% and 100% notices fire once a month; margin flags are one p
   const u = await makeUser(db);
   assert.equal(await ledger.firstNotice(u.id, 'warn80'), true); assert.equal(await ledger.firstNotice(u.id, 'warn80'), false);
   assert.equal(await ledger.firstNotice(u.id, 'limit100'), true); assert.equal(await ledger.firstNotice(u.id, 'warn80', '2020-01'), true);
-  assert.equal(await ledger.flagMargin({ userId: u.id, planId: 'search_pro', priceUsd: 14.79, costUsd: 7, multiplier: 2.5 }), true);
-  await ledger.flagMargin({ userId: u.id, planId: 'search_pro', priceUsd: 14.79, costUsd: 8, multiplier: 2.5 });
+  assert.equal(await ledger.flagMargin({ userId: u.id, planId: 'search_pro', priceUsd: 15.66, costUsd: 7, multiplier: 2.5 }), true);
+  await ledger.flagMargin({ userId: u.id, planId: 'search_pro', priceUsd: 15.66, costUsd: 8, multiplier: 2.5 });
   const rows = await db.query('SELECT cost_usd FROM ai_margin_flags WHERE user_id = $1', [u.id]);
   assert.equal(rows.length, 1); assert.equal(Number(rows[0].cost_usd), 8);
 });
@@ -285,3 +285,10 @@ test('ledger: pending costs are recorded as pending, not silently zero', KEEP, a
   assert.equal((await db.one(`SELECT cost_status FROM ai_credit_ledger WHERE user_id = $1`, [u.id])).cost_status, 'pending');
 });
 test('ledger: teardown', KEEP, async () => { await db.close(); });
+
+test('userTurn: preferences go in plainly, before the question; earlier notes stay marked as data', () => {
+  const { userTurn } = require(dist + 'ai-router/adapters/common.js');
+  const t = userTurn({ question: 'Best tacos?', preferences: ['Answer in Spanish.'], extraContext: '<note>x</note>' }, new Date('2026-10-23T12:00:00Z'));
+  assert.match(t, /^Today's date: 2026-10-23\nAnswer in Spanish\.\n\nBest tacos\?/);
+  assert.match(t, /<earlier_conversations>\n<note>x<\/note>\n<\/earlier_conversations>$/);
+});
