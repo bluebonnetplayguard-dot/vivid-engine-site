@@ -22,7 +22,7 @@ export class PerplexityAdapter implements ProviderAdapter {
       const { cost, status } = costOf(this.prices('perplexity', model), usage, out.costUsd);
       const citations = out.sources.map((s, i) => ({ n: i + 1, url: s.url, title: s.title, cited: s.cited }));
       hooks?.onSources?.(citations);
-      return { answer: out.text, citations, searchQueries: out.searchQueries, usage, cost, costStatus: status, provider: 'perplexity', model };
+      return { answer: out.text, citations, searchQueries: out.searchQueries, usage, cost, costStatus: status, provider: 'perplexity', model, reportedCostUsd: out.costUsd };
     } catch (e) {
       if (e instanceof AgentApiError) throw new ProviderError(e.message, 'perplexity', e.status, streamed);
       if ((e as Error).name === 'AbortError') throw e;

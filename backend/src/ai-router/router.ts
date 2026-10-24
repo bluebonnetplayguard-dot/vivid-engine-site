@@ -2,7 +2,7 @@ import { classifyIntent, explicitWhy, fallbackOrder } from './classify';
 import { mergeCitations, normalizeCitations, remapMarkers, renumberByUse } from './citations';
 import { checkCombined, checkDepth, policyFor } from './policy';
 import {
-  AdapterRequest, Attempt, Citation, ENGINE_LABELS, ENGINES, EngineId, Hooks, ProviderAdapter, ProviderError, ProviderResult, RouterError,
+  AdapterRequest, Attempt, CallEvent, Citation, ENGINE_LABELS, ENGINES, EngineId, Hooks, ProviderAdapter, ProviderError, ProviderResult, RouterError,
   RouterRequest, RouterResult, Usage,
 } from './types';
 
@@ -41,6 +41,8 @@ export class AiRouter {
   private readonly log: (msg: string) => void;
   /** Called when an engine reports billing/key trouble, so the billing monitor can raise an alert. */
   onBillingError?: (engine: EngineId, message: string) => void;
+  /** Called after every engine call, successful or not (the Billing Monitor's usage log). Must not throw or wait. */
+  onCall?: (event: CallEvent) => void;
 
   constructor(o: RouterOptions) {
     for (const a of o.adapters) this.adapters.set(a.id, a);
@@ -64,18 +66,24 @@ export class AiRouter {
   }
 
   // Runs one engine: try, retry once on a temporary failure, and report what happened.
-  private async runOne(id: EngineId, req: RouterRequest, attempts: Attempt[], hooks?: Hooks): Promise<ProviderResult> {
+  private async runOne(id: EngineId, req: RouterRequest, attempts: Attempt[], hooks?: Hooks, role: 'answer' | 'merge' = 'answer'): Promise<ProviderResult> {
     const adapter = this.adapters.get(id)!;
     let streamed = false;
     const wrapped: Hooks | undefined = hooks && { ...hooks, onDelta: t => { streamed = true; hooks.onDelta?.(t); } };
     for (let tryNo = 0; ; tryNo++) {
+      const t0 = this.now();
+      const emit = (ev: Omit<CallEvent, 'engine' | 'role' | 'attempt' | 'latencyMs' | 'req'>) => {
+        try { this.onCall?.({ engine: id, role, attempt: tryNo + 1, latencyMs: Math.max(0, this.now() - t0), req, ...ev }); } catch { /* logging never breaks an answer */ }
+      };
       try {
         const res = await adapter.run(this.adapterRequest(req, id), wrapped);
         attempts.push({ engine: id, ok: true, retried: tryNo > 0 });
+        emit({ ok: true, result: res });
         return res;
       } catch (e) {
         if (req.signal?.aborted) throw e;
         const pe = e instanceof ProviderError ? e : new ProviderError((e as Error).message ?? 'failed', id, (e as { status?: number }).status ?? null);
+        emit({ ok: false, status: pe.status, error: pe.billing ? 'billing' : pe.retryable ? 'temporary' : 'failed', billing: pe.billing });
         const started = streamed || pe.started;
         attempts.push({ engine: id, ok: false, error: pe.message.slice(0, 200), retried: tryNo > 0, billing: pe.billing });
         if (pe.billing) {                          // out of credit, bad key: no retry, skip this engine for a while
@@ -181,7 +189,7 @@ export class AiRouter {
     };
     let merged: ProviderResult;
     try {
-      merged = await this.runOne(writerId, mergeReq, attempts, hooks && { onDelta: hooks.onDelta, onStatus: hooks.onStatus });
+      merged = await this.runOne(writerId, mergeReq, attempts, hooks && { onDelta: hooks.onDelta, onStatus: hooks.onStatus }, 'merge');
     } catch (e) {
       if ((e as ProviderError).started) throw e;
       // The writer failed before saying anything: show the strongest single answer rather than nothing.

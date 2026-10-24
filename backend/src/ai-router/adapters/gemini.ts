@@ -74,7 +74,7 @@ export class GeminiAdapter implements ProviderAdapter {
         const usage = { inputTokens: out.inputTokens, outputTokens: out.outputTokens, cacheReadTokens: 0, searches: 0 };
         const { cost, status } = costOf(this.prices('gemini', config.PPLX_GEMINI_MODEL), usage, out.costUsd);
         hooks?.onDelta?.(out.text);
-        return { answer: out.text, citations: sources.all(), searchQueries: out.searchQueries, usage, cost, costStatus: status, provider: 'gemini', model: `perplexity:${config.PPLX_GEMINI_MODEL}` };
+        return { answer: out.text, citations: sources.all(), searchQueries: out.searchQueries, usage, cost, costStatus: status, provider: 'gemini', model: `perplexity:${config.PPLX_GEMINI_MODEL}`, reportedCostUsd: out.costUsd };
       } catch (e) { last = e; }
     }
     throw last instanceof ProviderError ? last : new ProviderError(last ? (last as Error).message : 'Gemini is not configured.', 'gemini', last ? null : 503);

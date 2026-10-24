@@ -417,5 +417,22 @@ const payments = {
   sendInvoice: id => request('POST', `/payments/invoices/${encodeURIComponent(id)}/send`, { body: {} }),
 };
 
-export const api = { auth, entities, functions, analytics, aiSearch, video, buildStudio, stackAdvisor, payments };
+// Admin only: the Billing Monitor (what each AI call cost, provider balances, budgets, alerts).
+const billing = {
+  summary: () => request('GET', '/admin/billing/summary'),
+  breakdown: (dim, period) => request('GET', `/admin/billing/by-${dim}`, { query: { period } }),
+  providers: () => request('GET', '/admin/billing/providers'),
+  optimize: () => request('GET', '/admin/billing/optimize'),
+  alerts: (open = false) => request('GET', '/admin/billing/alerts', { query: open ? { open: 1 } : {} }),
+  ackAlert: id => request('POST', `/admin/billing/alerts/${encodeURIComponent(id)}/ack`, { body: {} }),
+  budgets: () => request('GET', '/admin/billing/budgets'),
+  saveBudget: body => request('POST', '/admin/billing/budgets', { body }),
+  patchBudget: (id, body) => request('PATCH', `/admin/billing/budgets/${encodeURIComponent(id)}`, { body }),
+  prices: () => request('GET', '/admin/billing/prices'),
+  addPrice: body => request('POST', '/admin/billing/prices', { body }),
+  confirmPrice: (id, confirmed = true) => request('PATCH', `/admin/billing/prices/${encodeURIComponent(id)}`, { body: { confirmed } }),
+  unthrottle: userId => request('DELETE', `/admin/billing/throttles/${encodeURIComponent(userId)}`),
+};
+
+export const api = { auth, entities, functions, analytics, aiSearch, video, buildStudio, stackAdvisor, payments, billing };
 export default api;

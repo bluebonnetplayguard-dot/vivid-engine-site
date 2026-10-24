@@ -1,7 +1,7 @@
 import { useRef, useCallback } from "react";
 import { NavLink, Link, Navigate } from "react-router-dom";
 import { useAuth } from '@/lib/AuthContext';
-import { LayoutDashboard, Users, FileText, Receipt, Wallet, Sparkles, CreditCard, Calculator, Zap, ArrowLeft, LogOut, MessageCircle, Loader2, TrendingUp } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Receipt, Wallet, Sparkles, CreditCard, Calculator, Zap, ArrowLeft, LogOut, MessageCircle, Loader2, TrendingUp, Gauge } from "lucide-react";
 import { api } from '@/api/client';
 import { Button } from "@/components/ui/button";
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -21,6 +21,7 @@ const nav = [
   { to: "/admin/chat", label: "Live Chat", icon: MessageCircle },
   { to: "/admin/marketing-drafts", label: "Marketing Drafts", icon: Sparkles },
   { to: "/admin/pricing", label: "Market Pricing", icon: TrendingUp },
+  { to: "/admin/billing", label: "AI Billing", icon: Gauge },
 ];
 
 export default function AdminLayout() {

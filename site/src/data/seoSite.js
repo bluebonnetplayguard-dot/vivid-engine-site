@@ -110,6 +110,7 @@ export const PAGE_META = {
   adminQuotes: { path: '/admin/quotes', title: 'Business OS Quotes', description: 'Prepare and manage client quotes, line items, totals and proposal status.' },
   adminEstimator: { path: '/admin/estimator', title: 'Business OS AI Project Estimator', description: 'Prepare internal project estimates and save itemized draft quotes for client proposals.' },
   adminInvoices: { path: '/admin/invoices', title: 'Business OS Invoices', description: 'Create client invoices, review invoice status and record payments for your business.' },
+  adminBilling: { path: '/admin/billing', title: 'AI Billing Monitor', description: 'What every AI call costs, provider balances, budgets and alerts. Admin only.' },
   adminCosts: { path: '/admin/costs', title: 'Business OS Cost Tracking', description: 'Record internal expenses, vendors, categories and project costs in the Business OS.' },
   adminLogo: { path: '/admin/logo', title: 'Business OS Logo Designer', description: 'Generate and manage logo design concepts for your client branding projects.' },
   adminPos: { path: '/admin/pos', title: 'Business OS POS and Payments', description: 'Prepare client payment requests and review checkout outcomes in the Business OS.' },

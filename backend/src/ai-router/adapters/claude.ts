@@ -17,14 +17,15 @@ export class ClaudeAdapter implements ProviderAdapter {
   configured() { return !!this.client || agentConfigured(); }
 
   // A short answer with no web search, for small jobs like suggesting follow-up questions. Never throws.
-  async quick(system: string, prompt: string, maxTokens = 400): Promise<{ text: string; cost: number; model: string } | null> {
+  async quick(system: string, prompt: string, maxTokens = 400): Promise<{ text: string; cost: number; model: string; usage: { inputTokens: number; outputTokens: number }; latencyMs: number } | null> {
     if (!this.client) return null;
     const model = 'claude-haiku-5-5';
+    const started = Date.now();
     try {
       const res = await this.client.messages.create({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: prompt }] });
       const text = res.content.map((b: any) => (b.type === 'text' ? b.text : '')).join('');
       const { cost } = costOf(this.prices('claude', model), { inputTokens: res.usage.input_tokens, outputTokens: res.usage.output_tokens, cacheReadTokens: 0, searches: 0 });
-      return { text, cost, model };
+      return { text, cost, model, usage: { inputTokens: res.usage.input_tokens, outputTokens: res.usage.output_tokens }, latencyMs: Date.now() - started };
     } catch { return null; }
   }
 
@@ -123,6 +124,6 @@ export class ClaudeAdapter implements ProviderAdapter {
     }
 
     const { cost, status } = costOf(this.prices('claude', model), usage, reported);
-    return { answer: text, citations: sources.all(), searchQueries: queries, usage, cost, costStatus: status, provider: 'claude', model: viaPerplexity ? `perplexity:anthropic/${model}` : model };
+    return { answer: text, citations: sources.all(), searchQueries: queries, usage, cost, costStatus: status, provider: 'claude', model: viaPerplexity ? `perplexity:anthropic/${model}` : model, reportedCostUsd: reported };
   }
 }

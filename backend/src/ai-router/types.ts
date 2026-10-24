@@ -27,6 +27,16 @@ export interface RouterRequest {
   planId: string;                 // decides which engines, depths and models are allowed
   extraContext?: string;          // already-sanitised notes (for example remembered conversations); passed as data
   signal?: AbortSignal;
+  trace?: Trace;                  // who and what this call is for, for the usage log (never the question itself)
+}
+
+// Metadata for the Billing Monitor's usage log. Carried along with a request; never contains question text.
+export interface Trace { userId?: string | null; orgId?: string | null; workflow?: string; feature?: string; requestId?: string; queryHash?: string }
+
+// Fired once per call to an engine, successful or not, including automatic retries and the merge step of Combined.
+export interface CallEvent {
+  engine: EngineId; ok: boolean; role: 'answer' | 'merge'; attempt: number; latencyMs: number;
+  result?: ProviderResult; status?: number | null; error?: string; billing?: boolean; req: RouterRequest;
 }
 
 // What every engine returns.
@@ -40,6 +50,7 @@ export interface ProviderResult {
   provider: EngineId;
   model: string;
   groundedWithGoogle?: boolean;   // answer used Google Search grounding: no sponsored block may sit beside it
+  reportedCostUsd?: number | null;   // the provider itself said what the call cost (Perplexity Agent API does)
 }
 
 export interface Attempt { engine: EngineId; ok: boolean; error?: string; retried?: boolean; billing?: boolean }

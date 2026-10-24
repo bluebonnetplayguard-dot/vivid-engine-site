@@ -204,7 +204,7 @@ export class AiSearchService {
 
     // Plan limits and the monthly allowance are checked now, while a normal error can still be returned.
     const ctx = { userId: who.id, ...pool, guest };
-    const base: RouterRequest = { question, history: [], mode, engine, depth, focus, attachments, planId: ent.planId };
+    const base: RouterRequest = { question, history: [], mode, engine, depth, focus, attachments, planId: ent.planId, trace: this.ai.trace(ctx, question) };
     const pre = await this.ai.preflight(ctx, base);
 
     // Saving: paid plans only, never in private mode, never while read-only after a downgrade.
@@ -273,7 +273,7 @@ export class AiSearchService {
       if (thread && user) await this.hist.addMessage(user, thread.id, { role: 'assistant', content: finalText || '(no answer)', engine: r.engine === 'combined' ? 'combined' : r.provider, sources: r.citations });
       for (const level of r.notices) send('usage_warning', { level, message: level === 'warn80' ? "You've used 80% of this month's AI allowance." : "You've used this month's AI allowance. It resets on the 1st, or upgrade for more." });
       if (finalText.length > 200) {
-        const f = await this.ai.followUps(question, finalText);
+        const f = await this.ai.followUps(question, finalText, base.trace);
         followCost = f.cost;
         if (f.questions.length) send('followups', { questions: f.questions });
       }

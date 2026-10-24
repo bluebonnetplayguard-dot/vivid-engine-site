@@ -72,6 +72,18 @@ const schema = z.object({
   // Questions a visitor who is not signed in may ask per day, per network address (0 switches guest search off).
   GUEST_QUESTIONS_PER_DAY: z.coerce.number().int().min(0).default(3),
 
+  // Billing Monitor (admin > Billing). Every key is optional: a sync job with no key is skipped and shown as "not set up".
+  // DO_BILLING_TOKEN is a read-only DigitalOcean token. ANTHROPIC_ADMIN_KEY (sk-ant-admin...) is used ONLY by the hourly sync job.
+  DO_BILLING_TOKEN: z.string().optional(),
+  ANTHROPIC_ADMIN_KEY: z.string().optional(),
+  DEEPSEEK_API_KEY: z.string().optional(),          // only to read the balance; nothing in the app calls DeepSeek
+  ALERT_EMAIL_TO: z.string().optional(),            // defaults to STAFF_NOTIFY_EMAIL
+  ALERT_WEBHOOK_URL: z.string().url().optional(),   // Slack or Discord incoming webhook
+  LOW_BALANCE_USD: z.coerce.number().min(0).default(5),
+  GCP_BUDGET_PUSH_TOKEN: z.string().optional(),     // shared token on the Pub/Sub push URL: /api/billing/webhooks/gcp-budget?token=...
+  ABUSE_USER_HOURLY_USD: z.coerce.number().min(0).default(2),   // one account spending this much in an hour is slowed down (0 = off)
+  BILLING_MONITOR_JOBS: z.enum(['on', 'off']).default('on'),
+
   // Vivid Video Studio. Captions and voiceover use OPENAI_API_KEY; script-to-video uses Claude, else OpenAI.
   // Stock footage needs a free Pexels key (pexels.com/api). Each feature is hidden when its key is missing.
   PEXELS_API_KEY: z.string().optional(),

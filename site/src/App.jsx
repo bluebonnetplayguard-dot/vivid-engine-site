@@ -49,6 +49,7 @@ const AdminPos = lazy(() => import('@/pages/admin/AdminPos'));
 const AdminChat = lazy(() => import('@/pages/admin/AdminChat'));
 const AdminMarketingDrafts = lazy(() => import('@/pages/admin/AdminMarketingDrafts'));
 const AdminPricing = lazy(() => import('@/pages/admin/AdminPricing'));
+const AdminBilling = lazy(() => import('@/pages/admin/AdminBilling'));
 const AiSearch = lazy(() => import('@/pages/AiSearch'));
 const AiSearchPricing = lazy(() => import('@/pages/AiSearchPricing'));
 const AiSearchAccount = lazy(() => import('@/pages/AiSearchAccount'));
@@ -138,6 +139,7 @@ const AuthenticatedApp = () => {
           <Route path="/admin/chat" element={<AdminChat />} />
           <Route path="/admin/marketing-drafts" element={<AdminMarketingDrafts />} />
           <Route path="/admin/pricing" element={<AdminPricing />} />
+          <Route path="/admin/billing" element={<AdminBilling />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

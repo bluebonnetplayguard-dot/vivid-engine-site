@@ -9,6 +9,7 @@ export const PAGE_PARENTS = {
   '/admin/logo': { path: '/admin', label: 'Admin', title: 'Logo Designer' },
   '/admin/marketing-drafts': { path: '/admin', label: 'Admin', title: 'Marketing Drafts' },
   '/admin/pricing': { path: '/admin', label: 'Admin', title: 'Market Pricing' },
+  '/admin/billing': { path: '/admin', label: 'Admin', title: 'AI Billing' },
 };
 
 export function pageNavigation(pathname) {
