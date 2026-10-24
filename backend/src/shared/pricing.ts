@@ -1,5 +1,6 @@
 // Server-only authoritative cents (ported from base44/shared/pricing.ts).
 // Mirror src/config/pricing.js; never accept amounts from checkout callers.
+import { PRODUCTION } from './pricing-catalog';
 
 export interface PlanPrice { name: string; billing: 'one_time' | 'monthly'; once: number | null; monthly: number | null; yearly: number | null; startingCents?: number; quoteRequired?: boolean }
 export interface AddOnPrice { name: string; cents: number | null; startingCents?: number; percentage?: number; billing: 'one_time' | 'monthly'; includedIn: string[] }
@@ -31,6 +32,15 @@ export const ADD_ON_PRICES: Record<string, AddOnPrice> = {
 
 export const CARD_FEE_RATE = 0.035;
 
+// Human-made production (one-time) comes from the pricing catalog, never typed here. The 5-clip pack is 'social_clip_5'.
+export function productionItem(id: unknown): CatalogItem | null {
+  if (typeof id !== 'string') return null;
+  if (id === 'social_clip_5') { const clip = PRODUCTION.find(p => p.id === 'social_clip'); return clip?.bundle ? { id, name: `${clip.name} × ${clip.bundle.qty}`, cents: Math.round(clip.bundle.price * 100), interval: null } : null; }
+  const p = PRODUCTION.find(x => x.id === id);
+  if (!p || p.price == null || p.monthly) return null;     // Custom is quoted; the Monthly Content Plan is set up after a consultation
+  return { id, name: `Production: ${p.name}`, cents: Math.round(p.price * 100), interval: null };
+}
+
 export interface CatalogItem { id: string; name: string; cents: number; interval: 'month' | 'year' | null }
 
 const has = (o: object, k: unknown) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
@@ -38,6 +48,11 @@ const has = (o: object, k: unknown) => typeof k === 'string' && Object.prototype
 export function catalogItems({ plan_id, billing_cycle = 'monthly', add_on_ids = [] }: { plan_id?: string; billing_cycle?: string; add_on_ids?: unknown }): CatalogItem[] {
   if (!['monthly', 'yearly'].includes(billing_cycle)) throw new Error('Choose monthly or yearly billing.');
   if (!Array.isArray(add_on_ids) || add_on_ids.length > 14 || new Set(add_on_ids).size !== add_on_ids.length) throw new Error('Invalid additional options.');
+  const production = productionItem(plan_id);
+  if (production) {
+    if (Array.isArray(add_on_ids) && add_on_ids.length) throw new Error('Production is purchased on its own.');
+    return [production];
+  }
   const plan = has(PLAN_PRICES, plan_id) ? PLAN_PRICES[plan_id] : null;
   if (!plan && plan_id !== 'addons') throw new Error('Choose a valid plan.');
   if (plan?.quoteRequired) throw new Error(`${plan.name} requires a manually approved quote.`);

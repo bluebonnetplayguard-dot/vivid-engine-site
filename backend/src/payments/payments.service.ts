@@ -9,6 +9,8 @@ import { HistoryService } from '../history/history.service';
 import { isEmail, str } from '../shared/guards';
 import { CARD_FEE_RATE, CatalogItem, catalogItems } from '../shared/pricing';
 import { PAID_TIER_IDS, tierById } from '../ai-search/plans';
+import { DISCOUNTS } from '../shared/pricing-catalog';
+import { Phase, SubCycle, subscriptionPricing } from './subscription-pricing';
 import { VIDEO_PAID_TIER_IDS, videoTierById } from '../video/video-plans';
 import { receiptFooter } from './receipts';
 import { SquareClient, SquareError, SquarePayment, SquareSubscription, squareConfigured, verifyWebhookSignature } from './square';
@@ -37,6 +39,10 @@ export interface Quote {
   clientEmail?: string;
   clientName?: string;
   invoiceId?: string;
+  cycle?: SubCycle;             // subscriptions: how often it renews
+  periodLabel?: string;         // 'month' | 'year' | '2 years'
+  renewalCents?: number;        // what each renewal costs (differs from totalCents when the first month is discounted)
+  phases?: Phase[];
 }
 
 const tierOf = (kind: SubscriptionKind, id: string) => (kind === 'ai_search' ? tierById(id) : videoTierById(id));
@@ -72,10 +78,13 @@ export class PaymentsService {
       if (tier.perSeat && (!Number.isFinite(seats) || seats < tier.minSeats || seats > 500)) throw badRequest(`Choose between ${tier.minSeats} and 500 seats.`);
       const company = tier.perSeat ? str(body?.company_name, 120) : '';
       if (tier.perSeat && !company) throw badRequest('Enter your company name.');
-      const cents = Math.round(tier.priceMonthly * 100) * seats;
-      return { mode: 'subscription', kind, tier: tier.id, seats, companyName: company, reference: `${kind}:${tier.id}`,
-        items: [{ id: tier.id, name: `${productName(kind)} ${tier.name}${tier.perSeat ? ` × ${seats} seats` : ''}`, cents, interval: 'month' }],
-        totalCents: cents, afterpayEligible: false, description: `${productName(kind)} ${tier.name}, billed monthly` };
+      const sp = subscriptionPricing(kind, tier.id, tier.priceMonthly, seats, body?.cycle);
+      const billed = sp.cycle === 'annual' ? 'billed yearly' : sp.cycle === 'two_year' ? 'billed every 2 years' : 'billed monthly';
+      const items: CatalogItem[] = [{ id: tier.id, name: `${productName(kind)} ${tier.name}${tier.perSeat ? ` × ${seats} seats` : ''}`, cents: sp.renewalCents, interval: sp.cycle === 'monthly' ? 'month' : 'year' }];
+      if (sp.firstCents !== sp.renewalCents) items.push({ id: 'first-month', name: `First month ${Math.round(DISCOUNTS.firstMonth * 100)}% off`, cents: sp.firstCents - sp.renewalCents, interval: null });
+      return { mode: 'subscription', kind, tier: tier.id, seats, companyName: company, reference: `${kind}:${tier.id}:${sp.cycle}`,
+        items, totalCents: sp.firstCents, renewalCents: sp.renewalCents, cycle: sp.cycle, periodLabel: sp.periodLabel, phases: sp.phases,
+        afterpayEligible: false, description: `${productName(kind)} ${tier.name}, ${billed}` };
     }
     // One-time: a saved invoice, or a catalog plan selection (website plans / add-ons from shared/pricing.ts).
     let invoice: Record<string, any> | null = null;
@@ -166,7 +175,7 @@ export class PaymentsService {
     try {
       const customerId = await this.square.findOrCreateCustomer(user.email, user.full_name || undefined, user.id);
       const card = await this.square.createCard(sourceId, customerId, str(body?.verification_token, 500) || undefined);
-      const variationId = await this.planVariation(kind, tier.id, q.seats!, q.totalCents, q.items[0].name);
+      const variationId = await this.planVariation(kind, tier.id, q.seats!, q.phases!, q.items[0].name, q.periodLabel!);
       const sub = await this.square.createSubscription({ customerId, cardId: card.id, planVariationId: variationId });
       await this.syncSubscription(kind, sub, { userId: user.id, tier: tier.id, seats: q.seats!, companyName: q.companyName, customerId, cardId: card.id });
       return { id: sub.id, status: sub.status, chargedThrough: sub.charged_through_date ?? null, card: { brand: card.brand ?? null, last4: card.last4 ?? null } };
@@ -175,11 +184,12 @@ export class PaymentsService {
     }
   }
 
-  private async planVariation(kind: SubscriptionKind, tier: string, seats: number, cents: number, name: string): Promise<string> {
-    const key = `${kind}:${tier}:${seats}:${cents}`;
+  private async planVariation(kind: SubscriptionKind, tier: string, seats: number, phases: Phase[], name: string, period: string): Promise<string> {
+    const key = `${kind}:${tier}:${seats}:${phases.map(p => `${p.cadence}-${p.cents}-${p.periods ?? 0}`).join('+')}`;
     const cached = await this.db.one<{ variation_id: string }>('SELECT variation_id FROM square_catalog WHERE key = $1', [key]);
     if (cached) return cached.variation_id;
-    const made = await this.square.createPlanVariation(productName(kind), `${name} ($${(cents / 100).toFixed(2)}/mo)`, cents);
+    const last = phases[phases.length - 1];
+    const made = await this.square.createPlanVariation(productName(kind), `${name} ($${(last.cents / 100).toFixed(2)}/${period})`, phases);
     await this.db.query('INSERT INTO square_catalog(key, plan_id, variation_id) VALUES ($1, $2, $3) ON CONFLICT (key) DO NOTHING', [key, made.planId, made.variationId]);
     return made.variationId;
   }

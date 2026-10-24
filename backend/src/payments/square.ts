@@ -85,14 +85,16 @@ export class SquareClient {
   }
 
   // ---- catalog: one subscription plan per product, one variation per price ----
-  async createPlanVariation(planName: string, variationName: string, cents: number): Promise<{ planId: string; variationId: string }> {
+  // One plan with one variation. `phases` run in order; the last one repeats until cancelled
+  // (for example 25% off the first month, then the full monthly price).
+  async createPlanVariation(planName: string, variationName: string, phases: { cadence: 'MONTHLY' | 'ANNUAL' | 'EVERY_TWO_YEARS'; cents: number; periods?: number }[]): Promise<{ planId: string; variationId: string }> {
     const r = await this.request<{ id_mappings?: Array<{ client_object_id: string; object_id: string }> }>('POST', '/v2/catalog/batch-upsert', {
       idempotency_key: randomUUID(),
       batches: [{ objects: [
         { type: 'SUBSCRIPTION_PLAN', id: '#plan', subscription_plan_data: { name: planName, all_items: true } },
         { type: 'SUBSCRIPTION_PLAN_VARIATION', id: '#variation', subscription_plan_variation_data: {
           name: variationName, subscription_plan_id: '#plan',
-          phases: [{ cadence: 'MONTHLY', ordinal: 0, pricing: { type: 'STATIC', price_money: { amount: cents, currency: 'USD' } } }],
+          phases: phases.map((ph, i) => ({ cadence: ph.cadence, ordinal: i, ...(ph.periods ? { periods: ph.periods } : {}), pricing: { type: 'STATIC', price_money: { amount: ph.cents, currency: 'USD' } } })),
         } },
       ] }],
     });
