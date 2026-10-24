@@ -23,7 +23,7 @@ interface PageMeta {
   preload?: string[]; content?: PageContent;
 }
 interface SiteContact { name?: string; displayPhone?: string; telephone?: string; email?: string; whatsapp?: string }
-interface Manifest { pages: Record<string, PageMeta>; privatePatterns: string[]; notFound: PageMeta; privatePage: PageMeta; site?: SiteContact }
+interface Manifest { pages: Record<string, PageMeta>; privatePatterns: string[]; notFound: PageMeta; privatePage: PageMeta; site?: SiteContact; redirects?: Record<string, string> }
 
 export interface RenderedPage { status: number; html: string; noindex: boolean }
 
@@ -40,8 +40,10 @@ export class SeoPages {
   private readonly manifest: Manifest | null;
   private readonly privateRes: RegExp[];
   private readonly cache = new Map<string, RenderedPage>();
+  private readonly staticDir: string;
 
   constructor(staticDir: string) {
+    this.staticDir = staticDir;
     this.template = readFileSync(join(staticDir, 'index.html'), 'utf8');
     const file = join(staticDir, 'seo-routes.json');
     this.manifest = existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as Manifest) : null;
@@ -49,6 +51,19 @@ export class SeoPages {
   }
 
   get enabled() { return !!this.manifest; }
+
+  // Old URLs that moved (config/navigation.ts REDIRECTS): the new local path, or null. Only local paths are returned.
+  redirectFor(pathname: string): string | null {
+    const to = this.manifest?.redirects?.[pathname];
+    return typeof to === 'string' && /^\/(?!\/)/.test(to) && to !== pathname ? to : null;
+  }
+
+  // The build writes dist/<path>/index.html (and dist/index.prerendered.html for "/") for every indexable page.
+  // Only paths already in the manifest are looked up, so a request can never choose an arbitrary file.
+  private prerendered(pathname: string): string | null {
+    const file = pathname === '/' ? join(this.staticDir, 'index.prerendered.html') : join(this.staticDir, pathname.replace(/^\//, ''), 'index.html');
+    try { return existsSync(file) ? readFileSync(file, 'utf8') : null; } catch { return null; }
+  }
 
   render(pathname: string): RenderedPage {
     const cached = this.cache.get(pathname);
@@ -58,7 +73,8 @@ export class SeoPages {
       result = { status: 200, html: this.template, noindex: false }; // older build without a manifest: previous behavior
     } else if (this.manifest.pages[pathname]) {
       const meta = this.manifest.pages[pathname];
-      result = { status: 200, html: this.apply(meta, true), noindex: meta.noindex };
+      const file = !meta.noindex && BODY_CONTENT ? this.prerendered(pathname) : null;
+      result = { status: 200, html: file ?? this.apply(meta, true), noindex: meta.noindex };
     } else if (this.privateRes.some(re => re.test(pathname))) {
       result = { status: 200, html: this.apply(this.manifest.privatePage, false), noindex: true };
     } else {

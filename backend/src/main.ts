@@ -64,6 +64,9 @@ async function bootstrap() {
         const query = req.originalUrl.slice(req.path.length);
         return res.redirect(301, req.path.replace(/\/+$/, '') + query);
       }
+      // Pages that moved keep their links working (permanent redirect, keeping any query string).
+      const moved = seo.redirectFor(req.path);
+      if (moved) return res.redirect(301, moved + req.originalUrl.slice(req.path.length));
       const page = seo.render(req.path);
       res.status(page.status);
       res.setHeader('Cache-Control', 'no-cache');
