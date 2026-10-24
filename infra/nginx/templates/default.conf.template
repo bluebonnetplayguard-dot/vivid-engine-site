@@ -72,6 +72,9 @@ server {
   add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
   add_header X-Content-Type-Options "nosniff" always;
   add_header X-Frame-Options "SAMEORIGIN" always;
+  # The app (helmet) sends these two as well; keep only the copies above so each header appears once.
+  proxy_hide_header X-Content-Type-Options;
+  proxy_hide_header X-Frame-Options;
 
   # Plan PDFs and video pieces are uploaded through the API; keep the API cap in the app (see main.ts).
   client_max_body_size 25m;
@@ -133,9 +136,16 @@ server {
   # Built assets are content-hashed: cache for a year. index.html is never cached (the app sets no-cache).
   location /assets/ {
     proxy_pass http://app:8080;
+    # proxy_hide_header and add_header here replace the server-level sets, so repeat them.
     proxy_hide_header Cache-Control;
+    proxy_hide_header X-Content-Type-Options;
+    proxy_hide_header X-Frame-Options;
     add_header Cache-Control "public, max-age=31536000, immutable" always;
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
   }
 
   location / {
