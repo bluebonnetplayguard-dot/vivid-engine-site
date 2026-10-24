@@ -45,7 +45,7 @@ When it finishes, `https://vividenginesolutions.com` is live.
 
 | Do this | How |
 |---|---|
-| Add your keys (email, Stripe, Claude, Google, optional Twilio and research providers) | `nano /opt/vivid/infra/.env`, then `cd /opt/vivid/infra && docker compose up -d app` |
+| Add your keys (email, Square, Claude, Perplexity, Gemini, Google, optional Twilio and research providers) | `nano /opt/vivid/infra/.env`, then `cd /opt/vivid/infra && docker compose up -d app` |
 | Create your admin account | Sign up on the site with the admin email you gave the installer (needs SMTP set, to receive the code) |
 | Import Base44 data | `docs/DEPLOY.md`, step 4 |
 | Install an update later | Upload the new `.tar.gz` the same way and run `bash install.sh` again. Settings, data and imports are kept |
