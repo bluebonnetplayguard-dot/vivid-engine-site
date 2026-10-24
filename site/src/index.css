@@ -7,9 +7,34 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Brand tokens: the one place the Vivid Engine colors are defined. CSS uses var(--ve-*) (engine.css maps its short
+   names to these); Tailwind gets the same values as bg-ve-electric, text-ve-muted, etc. through the theme below.
+   --ve-muted is the small/dim text color: #8fa3c8 is 7.6:1 on the page background (WCAG AA needs 4.5:1). */
+:root {
+  --ve-void: #03060D;      /* page background (deep black/navy) */
+  --ve-deep: #07101F;
+  --ve-panel: #0B1730;
+  --ve-electric: #1E9BFF;  /* neon blue accent and button gradient */
+  --ve-glow: #4CC6FF;      /* light-blue highlight and button gradient */
+  --ve-chrome: #E9EEF6;    /* bold white headings */
+  --ve-text: #C3CEDF;
+  --ve-muted: #8fa3c8;
+  --ve-sunset: #FF8A3D;
+  --ve-line: rgba(76, 170, 255, .16);
+  --ve-line-strong: rgba(76, 170, 255, .38);
+}
+
 /* inline: utilities read the color variables where they are used, so sections that
    override them (e.g. the dark .engine-site theme) keep working as they did in Tailwind 3. */
 @theme inline {
+  --color-ve-void: var(--ve-void);
+  --color-ve-deep: var(--ve-deep);
+  --color-ve-panel: var(--ve-panel);
+  --color-ve-electric: var(--ve-electric);
+  --color-ve-glow: var(--ve-glow);
+  --color-ve-chrome: var(--ve-chrome);
+  --color-ve-text: var(--ve-text);
+  --color-ve-muted: var(--ve-muted);
   --opacity-7: 7.000000000000001%;
   --opacity-14: 14.000000000000002%;
   --opacity-28: 28.000000000000004%;
