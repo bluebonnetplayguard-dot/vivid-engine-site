@@ -10,3 +10,7 @@ backups/
 .seo-build/
 .vite/
 __pycache__/
+
+# iOS shell: native project is generated in CI
+ios-app/node_modules/
+ios-app/ios/

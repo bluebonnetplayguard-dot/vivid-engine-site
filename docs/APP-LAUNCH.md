@@ -60,11 +60,17 @@ Uses a Trusted Web Activity: a real Android app that shows your site with no bro
 
 ## 4. Apple App Store (iPhone/iPad)
 
-Harder: needs a **Mac with Xcode** and an **Apple Developer account ($99/year)**.
+Needs an **Apple Developer account ($99/year)**. No Mac is required: a cloud Mac builds it from the `ios-app/` folder (Capacitor shell that opens the live site). Team ID `LNM534GVS2` and bundle ID `com.vividenginesolutions.app` are already set, and the app-link file already lists them.
 
-1. PWABuilder → **Package for stores → iOS**, Bundle ID `com.vividenginesolutions.app`.
-2. Open the downloaded project in Xcode on a Mac, set your Team, Archive, upload.
-3. Add your Team ID + bundle ID to `site/public/.well-known/apple-app-site-association` (add to the `appIDs` lists, keep the existing entries).
+One-time setup:
+1. **App Store Connect** (appstoreconnect.apple.com) → Apps → New App → bundle ID `com.vividenginesolutions.app`. Register the ID first under developer.apple.com → Identifiers if it is not in the list.
+2. **API key:** App Store Connect → Users and Access → Integrations → App Store Connect API → generate a key with the **Admin** role. Download the `.p8` file once (Apple only lets you download it once). Note the **Key ID** and the **Issuer ID** shown on that page.
+3. **GitHub secrets** (repo → Settings → Secrets and variables → Actions → New repository secret):
+   - `APPSTORE_KEY_ID`: the Key ID
+   - `APPSTORE_ISSUER_ID`: the Issuer ID
+   - `APPSTORE_KEY_P8`: open the `.p8` file in Notepad and paste its full text, including the BEGIN/END lines
+
+Each build: GitHub → Actions → **iOS build (TestFlight)** → Run workflow → enter the version. After about 10 to 20 minutes the build appears in App Store Connect → TestFlight. Test it on your iPhone, then add it to a version and submit for review.
 
 Heads-up: Apple sometimes rejects apps that are "just a website." Your client portal, AI Search, Video Studio and account features help. Mention them in the review notes.
 
