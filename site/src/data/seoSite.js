@@ -2,6 +2,7 @@
 import { SERVICE_AREAS } from '@/data/serviceAreas';
 import { PLANS, ADD_ONS } from '@/config/pricing';
 import { BUSINESS, whatsappContactPoint } from '@/config/business';
+import { SEARCH_PLANS, formatUsd, planPrice } from '@/config/pricing-catalog';
 
 export const SITE = {
   url: 'https://vividenginesolutions.com',          // live domain, no trailing slash
@@ -90,7 +91,7 @@ export const PAGE_META = {
   privacy: { path: '/privacy', title: 'Privacy Policy | Vivid Engine Solutions', description: 'How Vivid Engine Solutions collects, uses and protects information when you use our website, client tools and services.' },
   support: { path: '/support', title: 'Website, App & Client Tools Support', description: 'Get help with your Vivid Engine website, app, CRM or POS tools. Find support contact details and answers to common client questions.' },
   aiSearch: { path: '/ai-search', title: 'Vivid AI Search | Research & Website-Building Assistant', description: 'Ask anything and get answers from live web search with sources, plus help planning and building your website. Free plan included; paid plans add other AI engines.' },
-  aiSearchPricing: { path: '/pricing/search', title: 'AI Search Pricing: Free, Search Pro and Search Max', description: 'Search Pro from $14.79 a month billed yearly, Search Max from $145.29. Saved conversation history on every paid plan.' },
+  aiSearchPricing: { path: '/pricing/search', title: 'AI Search Pricing: Free, Search Pro and Search Max', description: `Search Pro from ${formatUsd(planPrice(SEARCH_PLANS[1], 'annual'))} a month billed yearly, Search Max from ${formatUsd(planPrice(SEARCH_PLANS[2], 'annual'))}. Saved conversation history on every paid plan.` },
   aiSearchAccount: { path: '/ai-search/account', title: 'Your AI Search Plan', description: 'Your Vivid AI Search plan, usage, billing and team seats.' },
   videoStudio: { path: '/video', title: 'Vivid Video Studio | Online Video Editor with AI Captions', description: 'Edit videos in your browser with a timeline, templates, AI captions, AI voiceover and script-to-video. Your files stay on your computer. Free plan included.' },
   videoPricing: { path: '/video/pricing', title: 'Vivid Video Studio Plans & Pricing', description: 'Free, Creator $12, Pro $29 and Studio $59 a month, or Business at $24 per seat. Compare resolution, video length, effects, brand kits and AI allowances.' },

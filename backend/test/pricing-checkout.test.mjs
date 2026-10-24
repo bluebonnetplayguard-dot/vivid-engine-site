@@ -8,9 +8,9 @@ const dist = process.env.VE_DIST || new URL('../dist/', import.meta.url).pathnam
 const { subscriptionPricing } = require(dist + 'payments/subscription-pricing.js');
 const { catalogItems, productionItem } = require(dist + 'shared/pricing.js');
 
-test('Search Pro: annual is $14.79 x 12 billed once a year', () => {
+test('Search Pro: annual is $15.66 x 12 billed once a year', () => {
   const p = subscriptionPricing('ai_search', 'search_pro', 17.4, 1, 'annual');
-  assert.deepEqual(p.phases, [{ cadence: 'ANNUAL', cents: 17748 }]);
+  assert.deepEqual(p.phases, [{ cadence: 'ANNUAL', cents: 18792 }]);
   assert.equal(p.periodLabel, 'year');
 });
 test('Search Pro: monthly is $17.40 with 25% off the first month', () => {
@@ -20,7 +20,7 @@ test('Search Pro: monthly is $17.40 with 25% off the first month', () => {
 });
 test('Search Max: 2-year term is the annual rate x 24 less 10%', () => {
   const p = subscriptionPricing('ai_search', 'search_max', 174, 1, 'two_year');
-  assert.deepEqual(p.phases, [{ cadence: 'EVERY_TWO_YEARS', cents: Math.round(145.29 * 24 * 0.9 * 100) }]);
+  assert.deepEqual(p.phases, [{ cadence: 'EVERY_TWO_YEARS', cents: Math.round(164.33 * 24 * 0.9 * 100) }]);
 });
 test('plans outside the catalog stay monthly at their listed price, per seat', () => {
   const p = subscriptionPricing('ai_search', 'business', 35, 3, 'annual');
@@ -38,4 +38,17 @@ test('production is sold one-time from the catalog; Custom and the monthly plan 
   assert.deepEqual(catalogItems({ plan_id: 'pro_ad_premium' }).map(i => i.cents), [595000]);
   assert.throws(() => catalogItems({ plan_id: 'social_clip', add_on_ids: ['seo'] }), /on its own/);
   assert.equal(catalogItems({ plan_id: 'starter' })[0].cents, 99900);
+});
+test('catalog: every benchmarked plan is the average of similar apps less 13%, and yearly is never dearer than monthly', () => {
+  const catalog = require(dist + 'shared/pricing-catalog.js');
+  for (const p of catalog.ALL_SELF_SERVE) {
+    assert.ok(catalog.planPrice(p, 'annual') <= catalog.planPrice(p, 'monthly'), p.id);
+    if (!p.benchmarks.length) continue;
+    for (const cycle of ['annual', 'monthly']) {
+      const vals = p.benchmarks.map(b => (cycle === 'annual' ? (b.annual ?? b.monthly) : b.monthly) * 100);
+      const avgCents = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+      assert.equal(catalog.planPrice(p, cycle), Math.round(avgCents * 0.87) / 100, `${p.id} ${cycle}`);
+    }
+  }
+  assert.equal(catalog.planPrice(catalog.planById('web_business'), 'monthly'), 48.29);   // avg of $46 and $65
 });

@@ -1,6 +1,7 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { Check, MessageCircle } from 'lucide-react';
 import SEO from '@/components/seo/SEO';
+import { seoProps } from '@/seo/pageSeo';
 import EngineNav from '@/components/engine/EngineNav';
 import EngineFooter from '@/components/engine/EngineFooter';
 import AdditionalOptions from '@/components/pricing/AdditionalOptions';
@@ -8,30 +9,15 @@ import '@/components/engine/engine.css';
 import './pricing.css';
 import {
   APP_BUILDER_PLANS, BUILD_PACKAGES, BUNDLES, DEFAULT_CYCLE, DISCOUNTS, HISTORY_ROW_LABEL, PARTNER_TIERS, PRICING_AS_OF, PRODUCTION, SEARCH_PLANS, WEBSITE_PLANS,
-  bundlePrice, competitorPrice, firstMonthPrice, formatUsd, historyLabel, nonprofitPrice, partnerPrice, planById, planPrice, savingsVsCompetitor, twoYearPrice,
+  benchmarkApps, benchmarkAverage, bundlePrice, firstMonthPrice, formatUsd, historyLabel, nonprofitPrice, partnerPrice, planById, planPrice, savingsVsAverage, twoYearPrice, UNDERCUT_PERCENT,
 } from '@/config/pricing-catalog';
 import { SELF_SERVE_LIVE, consultationHref, earlyAccessHref, partnerApplyHref } from '@/config/launch';
+import { PRICING_PAGES as PRICING_CATEGORIES, asOfText } from '@/config/pricing-pages';
+export { PRICING_CATEGORIES };
 import { BUSINESS, whatsappUrl } from '@/config/business';
 
 // /pricing and /pricing/<category>. Every number on this page comes from config/pricing-catalog.ts; savings are
 // worked out there, never typed here.
-export const PRICING_CATEGORIES = [
-  { slug: '', label: 'Overview', title: 'Pricing: AI Search, Websites, Apps and Production', description: `Prices for Vivid AI Search, website plans, the app builder, video production and done-for-you builds. Self-serve plans are 13% below the matching competitor as of ${asOfText()}.` },
-  { slug: 'search', label: 'AI Search', title: 'AI Search Pricing: Free, Search Pro and Search Max', description: `Search Pro ${perMonth(SEARCH_PLANS[1], 'annual')} billed yearly or ${perMonth(SEARCH_PLANS[1], 'monthly')} monthly. Search Max ${perMonth(SEARCH_PLANS[2], 'annual')} billed yearly. Saved conversation history on every paid plan.` },
-  { slug: 'websites', label: 'Websites', title: 'Website Plan Pricing: Spark, Core, Business and Business Elite', description: `Website plans from ${perMonth(WEBSITE_PLANS[1], 'annual')} billed yearly, 13% below the matching Wix plan as of ${asOfText()}.` },
-  { slug: 'app-builder', label: 'App Builder', title: 'App Builder Pricing: Starter, Builder, Pro and Elite', description: `App Builder plans from ${perMonth(APP_BUILDER_PLANS[1], 'annual')} billed yearly with monthly credits, 13% below the matching Base44 plan as of ${asOfText()}.` },
-  { slug: 'production', label: 'Production', title: 'Video Production Pricing: Owner Spotlight, Ads and Social Clips', description: 'Human-made video production for local businesses: Owner Spotlight from $1,495, social clips from $350, and a monthly content plan.' },
-  { slug: 'custom-builds', label: 'We Build It', title: 'We Build It For You: Website and App Build Pricing', description: 'Done-for-you websites from $999 and $1,500, custom apps from $3,500, each with 3 months of the matching plan included. Book a free consultation.' },
-  { slug: 'bundles', label: 'Bundles', title: 'Bundle Pricing: Launch, Builder and All-In-One', description: 'Save 15% with the Launch and Builder bundles, or 20% with All-In-One. Bundle savings are calculated from the plan prices.' },
-  { slug: 'partners', label: 'Partners', title: 'Local Partner Pricing: Bronze, Silver, Gold and Platinum', description: 'Get listed as a Vivid Engine Partner in Local Businesses. Bronze $129, Silver $234, Gold $399 and Platinum $749 a month, 10% off annual.' },
-  { slug: 'compare', label: 'Compare', title: 'Compare Vivid Engine Plans and Prices', description: `Every Vivid Engine plan side by side with the competitor plan it is priced against, as of ${asOfText()}, including saved conversation history.` },
-];
-
-function asOfText() {
-  const [y, m, d] = PRICING_AS_OF.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' });
-}
-function perMonth(plan, cycle) { return `${formatUsd(planPrice(plan, cycle))}/mo`; }
 const CYCLE_NOTE = { annual: 'per month, billed yearly', monthly: 'per month, billed monthly' };
 
 function CycleToggle({ cycle, setCycle }) {
@@ -72,8 +58,8 @@ function planCta(plan, cycle) {
 function PlanCard({ plan, cycle }) {
   const price = planPrice(plan, cycle);
   const cta = planCta(plan, cycle);
-  const comp = competitorPrice(plan, cycle);
-  const saves = savingsVsCompetitor(plan, cycle);
+  const avg = benchmarkAverage(plan, cycle);
+  const saves = savingsVsAverage(plan, cycle);
   return <article className={`pr-card${plan.badge ? ' is-featured' : ''}`} aria-labelledby={`plan-${plan.id}`}>
     {plan.badge && <span className="pr-ribbon">{plan.badge}</span>}
     <h3 id={`plan-${plan.id}`}>{plan.name}</h3>
@@ -82,7 +68,7 @@ function PlanCard({ plan, cycle }) {
     {price > 0 && <p className="pr-sub">{cycle === 'annual'
       ? <>{formatUsd(Math.round(price * 12 * 100) / 100)} a year · or {formatUsd(twoYearPrice(price))}/mo on a 2-year term</>
       : <>First month {formatUsd(firstMonthPrice(price))} ({Math.round(DISCOUNTS.firstMonth * 100)}% off)</>}</p>}
-    {comp != null && saves > 0 && <p className="pr-comp">{plan.competitor.name} lists {formatUsd(comp)}/mo. You pay {formatUsd(saves)}/mo less.</p>}
+    {avg != null && saves > 0 && <p className="pr-comp">Similar plans average {formatUsd(avg)}/mo ({plan.benchmarks.map(b => b.app).join(', ')}). You pay {formatUsd(saves)}/mo less.</p>}
     {plan.credits && <p className="pr-credits">{(cycle === 'annual' ? plan.credits.annual : plan.credits.monthly).toLocaleString('en-US')} credits {cycle === 'annual' ? 'a year' : 'a month'}</p>}
     <ul>{plan.features.map(f => <li key={f}><Check size={16} aria-hidden="true" />{f}</li>)}</ul>
     <p className="pr-history"><b>{HISTORY_ROW_LABEL}:</b> {historyLabel(plan.history)}</p>
@@ -95,21 +81,25 @@ function PlanGrid({ plans, cycle }) {
   return <div className="pr-grid">{plans.map(p => <PlanCard key={p.id} plan={p} cycle={cycle} />)}</div>;
 }
 
-// Plans as columns, facts as rows. Every comparison table has the saved-history row and the "as of" date.
-function CompareTable({ title, plans, competitorLabel }) {
-  const paid = plans.filter(p => p.competitor);
+// Plans as columns, facts as rows. Every comparison table has the saved-history row and the "as of" date, and lists
+// exactly which apps' plans make up each average, with links to their pricing pages.
+const benchList = (p, cycle) => p.benchmarks.map(b => `${b.app} ${b.plan} ${formatUsd(cycle === 'annual' ? (b.annual ?? b.monthly) : b.monthly)}`).join(' · ');
+function CompareTable({ title, plans, id }) {
+  const paid = plans.filter(p => p.benchmarks.length);
+  const dash = (p, f) => (p.benchmarks.length ? f(p) : '—');
   const rows = [
     ['Price, billed yearly', p => `${formatUsd(planPrice(p, 'annual'))}/mo`],
     ['Price, billed monthly', p => `${formatUsd(planPrice(p, 'monthly'))}/mo`],
-    [`Compared with (${competitorLabel})`, p => p.competitor?.name ?? '—'],
-    ['Their price, yearly', p => (p.competitor ? `${formatUsd(p.competitor.annual)}/mo` : '—')],
-    ['Their price, monthly', p => (p.competitor ? `${formatUsd(p.competitor.monthly)}/mo` : '—')],
-    ['You save, yearly', p => (p.competitor ? `${formatUsd(savingsVsCompetitor(p, 'annual'))}/mo` : '—')],
+    ['Average of similar apps, yearly', p => dash(p, x => `${formatUsd(benchmarkAverage(x, 'annual'))}/mo`)],
+    ['Average of similar apps, monthly', p => dash(p, x => `${formatUsd(benchmarkAverage(x, 'monthly'))}/mo`)],
+    ['Apps in the average (yearly price)', p => dash(p, x => benchList(x, 'annual'))],
+    ['You save, yearly', p => dash(p, x => `${formatUsd(savingsVsAverage(x, 'annual'))}/mo`)],
     ...(plans.some(p => p.credits) ? [['Credits (monthly / yearly)', p => (p.credits ? `${p.credits.monthly.toLocaleString('en-US')} / ${p.credits.annual.toLocaleString('en-US')}` : '—')]] : []),
     [HISTORY_ROW_LABEL, p => historyLabel(p.history)],
   ];
-  return <section className="pr-compare" aria-labelledby={`cmp-${competitorLabel}`}>
-    <h2 id={`cmp-${competitorLabel}`}>{title}</h2>
+  const sources = [...new Map(paid.flatMap(p => p.benchmarks).map(b => [b.app, b.url])).entries()];
+  return <section className="pr-compare" aria-labelledby={`cmp-${id}`}>
+    <h2 id={`cmp-${id}`}>{title}</h2>
     <div className="pr-table-wrap" tabIndex={0} role="region" aria-label={`${title} table`}>
       <table>
         <caption className="sr-only">{title}</caption>
@@ -117,7 +107,7 @@ function CompareTable({ title, plans, competitorLabel }) {
         <tbody>{rows.map(([label, cell]) => <tr key={label}><th scope="row">{label}</th>{plans.map(p => <td key={p.id}>{cell(p)}</td>)}</tr>)}</tbody>
       </table>
     </div>
-    <p className="pr-asof">Competitor prices from each company&apos;s own pricing page, as of {asOfText()}. Prices change; check {paid.length ? <a href={paid[0].competitor.url} target="_blank" rel="noopener noreferrer">their page</a> : 'their page'} for today&apos;s price. We compare price only, not features.</p>
+    <p className="pr-asof">Each paid plan is priced {UNDERCUT_PERCENT}% below the average of comparable plans from {benchmarkApps(paid).join(', ')}, using each company&apos;s own published prices as of {asOfText()}. Where a company sells a plan monthly only, its monthly price counts in the yearly average. Prices change; check today&apos;s prices at {sources.map(([app, url], i) => <span key={app}>{i ? ', ' : ''}<a href={url} target="_blank" rel="noopener noreferrer">{app}</a></span>)}. We compare price only, not features.</p>
   </section>;
 }
 
@@ -125,15 +115,15 @@ function SearchSection({ cycle }) {
   return <>
     <PlanGrid plans={SEARCH_PLANS} cycle={cycle} />
     <p className="pr-note">Guests and the Free plan save nothing. Paid plans keep conversations for 12 months; Search Max keeps them until you delete them, with full-text search, export and optional memory. If a plan ends, saved conversations stay readable for 30 days.</p>
-    <CompareTable title="AI Search compared" plans={SEARCH_PLANS} competitorLabel="Perplexity" />
+    <CompareTable title="AI Search compared" plans={SEARCH_PLANS} id="search" />
   </>;
 }
 function WebsitesSection({ cycle }) {
-  return <><PlanGrid plans={WEBSITE_PLANS} cycle={cycle} /><CompareTable title="Website plans compared" plans={WEBSITE_PLANS} competitorLabel="Wix" />
+  return <><PlanGrid plans={WEBSITE_PLANS} cycle={cycle} /><CompareTable title="Website plans compared" plans={WEBSITE_PLANS} id="websites" />
     <p className="pr-note">Rather have us build it? <Link to="/pricing/custom-builds">See We Build It For You</Link>.</p></>;
 }
 function AppSection({ cycle }) {
-  return <><PlanGrid plans={APP_BUILDER_PLANS} cycle={cycle} /><CompareTable title="App Builder compared" plans={APP_BUILDER_PLANS} competitorLabel="Base44" /></>;
+  return <><PlanGrid plans={APP_BUILDER_PLANS} cycle={cycle} /><CompareTable title="App Builder compared" plans={APP_BUILDER_PLANS} id="app-builder" /></>;
 }
 
 function ProductionSection() {
@@ -234,9 +224,9 @@ function Overview({ cycle }) {
 
 function CompareAll() {
   return <>
-    <CompareTable title="AI Search compared" plans={SEARCH_PLANS} competitorLabel="Perplexity" />
-    <CompareTable title="Website plans compared" plans={WEBSITE_PLANS} competitorLabel="Wix" />
-    <CompareTable title="App Builder compared" plans={APP_BUILDER_PLANS} competitorLabel="Base44" />
+    <CompareTable title="AI Search compared" plans={SEARCH_PLANS} id="search" />
+    <CompareTable title="Website plans compared" plans={WEBSITE_PLANS} id="websites" />
+    <CompareTable title="App Builder compared" plans={APP_BUILDER_PLANS} id="app-builder" />
     <section className="pr-compare" aria-labelledby="cmp-bundles">
       <h2 id="cmp-bundles">Bundles compared</h2>
       <div className="pr-table-wrap" tabIndex={0} role="region" aria-label="Bundles compared table"><table>
@@ -261,14 +251,14 @@ export default function PricingPage() {
   const Section = SECTIONS[cat.slug];
   const path = `/pricing${cat.slug ? `/${cat.slug}` : ''}`;
   return <div className="engine-site">
-    <SEO path={path} title={`${cat.title} | ${BUSINESS.brandName}`} description={cat.description} />
+    <SEO {...seoProps(path)} />
     <EngineNav />
     <main className="engine-wrap pr-wrap">
       <Breadcrumbs category={cat} />
       <header className="pr-head">
         <span className="engine-caps">Pricing</span>
         <h1>{cat.slug ? cat.title.split(':')[0] : 'Simple prices, worked out in the open'}</h1>
-        <p>{cat.slug ? cat.description : `Self-serve plans are priced 13% below the matching competitor plan as of ${asOfText()}. Yearly billing is shown first; switch to monthly any time.`}</p>
+        <p>{cat.slug ? cat.description : `Self-serve plans are priced ${UNDERCUT_PERCENT}% below the average price of similar apps as of ${asOfText()}. Yearly billing is shown first; switch to monthly any time.`}</p>
       </header>
       <CategoryTabs slug={cat.slug} cycle={cycle} />
       {HAS_CYCLE.has(cat.slug) && <CycleToggle cycle={cycle} setCycle={setCycle} />}

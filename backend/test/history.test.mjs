@@ -69,7 +69,7 @@ test('rules: guests and Free save nothing', () => {
   for (const id of ['search_free', 'web_free', 'app_free', 'free']) assert.equal(catalog.historyForPlan(id), null, id);
 });
 test('rules: every paid catalog plan has history; Pro-level 12 months, Max and All-In-One until deleted', () => {
-  const paidPlans = catalog.ALL_SELF_SERVE.filter(p => p.competitor || p.setPrice);
+  const paidPlans = catalog.ALL_SELF_SERVE.filter(p => p.benchmarks.length || p.setPrice);
   assert.ok(paidPlans.length >= 10);
   for (const p of paidPlans) assert.ok(catalog.historyForPlan(p.id), p.id);
   assert.equal(catalog.historyForPlan('search_pro').retentionDays, 365);
