@@ -1,0 +1,84 @@
+{
+  "name": "Inquiry",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "business": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "interest": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "preferredContact": {
+      "type": "string"
+    },
+    "preferredDate": {
+      "type": "string"
+    },
+    "preferredTime": {
+      "type": "string"
+    },
+    "consultType": {
+      "type": "string"
+    },
+    "smsConsent": {
+      "type": "boolean",
+      "default": false
+    },
+    "consentText": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "default": "NEW LEAD"
+    },
+    "sessionId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

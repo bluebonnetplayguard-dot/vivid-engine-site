@@ -1,0 +1,60 @@
+{
+  "name": "SmsLog",
+  "type": "object",
+  "properties": {
+    "dedupeKey": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent",
+        "failed",
+        "skipped"
+      ],
+      "default": "pending"
+    },
+    "body": {
+      "type": "string"
+    },
+    "providerId": {
+      "type": "string"
+    },
+    "error": {
+      "type": "string"
+    },
+    "attempts": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "dedupeKey"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

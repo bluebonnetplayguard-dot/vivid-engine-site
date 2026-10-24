@@ -1,0 +1,14 @@
+.sq{display:grid;gap:12px;max-width:520px}
+.sq-total{display:flex;justify-content:space-between;align-items:baseline;font-size:1.05rem}
+.sq-total strong{font-size:1.6rem;color:var(--chrome,#fff)}
+.sq-items{list-style:none;margin:0;padding:10px 12px;border:1px solid var(--line,#1b2848);border-radius:10px;display:grid;gap:6px;font-size:.9rem;color:var(--muted,#8fa3c8)}
+.sq-items li{display:flex;justify-content:space-between;gap:12px}
+.sq-wallets{display:grid;gap:8px}
+.sq-wallet{min-height:48px;border-radius:10px;overflow:hidden}
+.sq-afterpay{min-height:48px}
+.sq-afterpay[hidden]{display:none}
+.sq-label{font-size:.82rem;color:var(--muted,#8fa3c8)}
+.sq-card{min-height:92px;border:1px solid var(--line,#1b2848);border-radius:10px;padding:8px;background:#fff}
+.sq-pay{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.sq-note,.sq-fine{font-size:.8rem;color:var(--muted,#8fa3c8);margin:0;display:flex;gap:6px;align-items:flex-start}
+.sq-fine a{color:var(--glow,#3fb8ff)}

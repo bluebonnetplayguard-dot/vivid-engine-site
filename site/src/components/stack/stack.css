@@ -1,0 +1,15 @@
+.sa-card{display:grid;gap:12px}
+.sa-block{border:1px solid var(--line);border-radius:12px;padding:10px 13px;background:rgba(11,23,48,.6)}
+.sa-badge{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;font-weight:700;border-radius:999px;padding:2px 9px;border:1px solid}
+.sa-badge small{font-weight:500;opacity:.85}
+.sa-badge.is-verified{color:#9ff0c0;border-color:rgba(37,211,102,.4);background:rgba(37,211,102,.08)}
+.sa-badge.is-checked{color:#9fd4ff;border-color:rgba(30,155,255,.45);background:rgba(30,155,255,.08)}
+.sa-badge.is-indexed{color:#f5e2b8;border-color:rgba(255,210,122,.4);background:rgba(255,210,122,.07)}
+.sa-badge.is-unknown{color:var(--muted);border-color:var(--line)}
+.sa-evidence,.sa-pairs,.sa-issues,.sa-results{margin:8px 0 0;padding-left:0;list-style:none;display:grid;gap:7px;font-size:.86rem}
+.sa-evidence li{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.sa-evidence em{color:var(--muted);font-style:normal;flex-basis:100%}
+.sa-none,.sa-weak{color:var(--muted);margin:6px 0 0!important}
+.sa-caveat{display:flex;gap:6px;align-items:flex-start;font-size:.82rem;color:#f5e2b8;margin:6px 0 0!important}
+.sa-issues li.is-problem{color:#ffb4b4}.sa-issues li.is-warning{color:#f5e2b8}
+.sa-mock{color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:0 5px}

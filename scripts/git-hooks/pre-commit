@@ -1,0 +1,11 @@
+#!/bin/sh
+# Blocks a commit that contains a secret. Install once per clone:
+#   git config core.hooksPath scripts/git-hooks
+# Needs gitleaks (https://github.com/gitleaks/gitleaks): brew install gitleaks, or download a release binary.
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks is not installed, so staged files were not scanned for secrets." >&2
+  echo "Install it, or the CI check will catch them after you push." >&2
+  exit 0
+fi
+# --redact: if a secret is found, the report shows where it is, never the value itself.
+exec gitleaks git --pre-commit --staged --redact --no-banner --config .gitleaks.toml

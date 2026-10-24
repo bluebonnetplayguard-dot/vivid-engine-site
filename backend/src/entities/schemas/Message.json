@@ -1,0 +1,49 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string"
+    },
+    "sender_name": {
+      "type": "string"
+    },
+    "sender_user_id": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "is_from_client": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "project_id",
+    "sender_name",
+    "content"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

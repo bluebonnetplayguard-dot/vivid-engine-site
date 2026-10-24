@@ -1,0 +1,60 @@
+# DigitalOcean App Platform spec (alternative to the Droplet).
+# The whole app (site + API) is one container image built from ../Dockerfile.
+#
+# Deploy without GitHub:
+#   1. docker build -t registry.digitalocean.com/<your-registry>/vivid-engine:latest .
+#      doctl registry login && docker push registry.digitalocean.com/<your-registry>/vivid-engine:latest
+#   2. doctl apps create --spec .do/app.yaml
+# Then set the secret values below in the App Platform dashboard (Settings > Environment variables).
+# To deploy from GitHub/GitLab instead, replace `image:` with a `github:` block and `dockerfile_path: Dockerfile`.
+name: vivid-engine
+region: nyc
+domains:
+  - domain: vividenginesolutions.com
+    type: PRIMARY
+  - domain: www.vividenginesolutions.com
+    type: ALIAS
+services:
+  - name: web
+    image:
+      registry_type: DOCR
+      repository: vivid-engine
+      tag: latest
+    http_port: 8080
+    instance_count: 1           # keep at 1: live updates and the daily summary run in-process
+    instance_size_slug: apps-s-1vcpu-1gb
+    health_check:
+      http_path: /api/health
+    envs:
+      - { key: NODE_ENV, value: production }
+      - { key: PORT, value: "8080" }
+      - { key: PUBLIC_ORIGIN, value: https://vividenginesolutions.com }
+      - { key: DATABASE_URL, value: "${db.DATABASE_URL}" }
+      - { key: DATABASE_CA_CERT, value: "${db.CA_CERT}" }
+      - { key: JWT_ACCESS_SECRET, type: SECRET }
+      - { key: JWT_REFRESH_SECRET, type: SECRET }
+      - { key: PUBLIC_CLIENT_SECRET, type: SECRET }
+      - { key: ADMIN_EMAILS, value: info@vividenginesolutions.com }
+      - { key: GOOGLE_CLIENT_ID, type: SECRET }
+      - { key: GOOGLE_CLIENT_SECRET, type: SECRET }
+      - { key: SMTP_HOST, value: "" }
+      - { key: SMTP_PORT, value: "587" }
+      - { key: SMTP_USER, type: SECRET }
+      - { key: SMTP_PASS, type: SECRET }
+      - { key: STRIPE_SECRET_KEY, type: SECRET }
+      - { key: STRIPE_WEBHOOK_SECRET, type: SECRET }
+      - { key: ANTHROPIC_API_KEY, type: SECRET }
+      - { key: TWILIO_ACCOUNT_SID, type: SECRET }
+      - { key: TWILIO_AUTH_TOKEN, type: SECRET }
+      - { key: TWILIO_FROM_NUMBER, value: "" }
+      - { key: OWNER_PHONE, value: "" }
+      - { key: INDEXNOW_KEY, value: a3f7b2c9e1d48560f2c6b8a1d3e5f729 }
+      - { key: TAVILY_API_KEY, type: SECRET }
+      - { key: EXA_API_KEY, type: SECRET }
+      - { key: PERPLEXITY_API_KEY, type: SECRET }
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    production: true
+    cluster_name: vivid-db       # create a Managed PostgreSQL cluster with this name first

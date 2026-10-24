@@ -1,0 +1,49 @@
+{
+  "name": "Task",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "default": "todo"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "order": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "project_id",
+    "title"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": null,
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "name": "EngineeringAuditEvent",
+  "type": "object",
+  "properties": {
+    "companyId": {
+      "type": "string"
+    },
+    "actorUserId": {
+      "type": "string"
+    },
+    "actorEmail": {
+      "type": "string"
+    },
+    "eventType": {
+      "type": "string"
+    },
+    "entityType": {
+      "type": "string"
+    },
+    "entityId": {
+      "type": "string"
+    },
+    "details": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "eventTimestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "eventType"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

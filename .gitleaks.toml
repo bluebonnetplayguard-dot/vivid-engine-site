@@ -1,0 +1,17 @@
+# Secret scanning for commits (pre-commit hook in scripts/git-hooks) and CI (.github/workflows/ci.yml).
+# Keys belong only in /opt/vivid/infra/.env on the server; .env.example files list names with no values.
+title = "Vivid Engine Solutions"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Example env files (names only) and test fixtures with fake values"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''^backend/test/''',
+  '''package-lock\.json$''',
+]
+regexes = [
+  '''vivid\.[a-z]+\.prices\.v[0-9]+''',   # a localStorage key name, not a key
+]

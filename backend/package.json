@@ -1,0 +1,46 @@
+{
+  "name": "vivid-engine-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vivid Engine Solutions API (replaces Base44)",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"const fs=require('fs');fs.cpSync('src/migrations','dist/migrations',{recursive:true});fs.cpSync('src/entities/schemas','dist/entities/schemas',{recursive:true});fs.cpSync('src/build-studio/model-spec.schema.json','dist/build-studio/model-spec.schema.json')\"",
+    "start": "node dist/main.js",
+    "dev": "tsc -p tsconfig.json --watch",
+    "migrate": "node dist/scripts/migrate.js",
+    "import:base44": "node dist/scripts/import-base44.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --test-concurrency=1 test/pricing-engine.test.mjs test/history.test.mjs test/ai-router.test.mjs test/billing-monitor.test.mjs test/pricing-checkout.test.mjs test/seo-server.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.137.0",
+    "@nestjs/common": "^11.2.7",
+    "@nestjs/core": "^11.2.7",
+    "@nestjs/platform-express": "^11.2.7",
+    "@nestjs/throttler": "^6.7.1",
+    "argon2": "^0.41.1",
+    "compression": "^1.8.2",
+    "cookie-parser": "^1.4.7",
+    "google-auth-library": "^11.3.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^10.1.7",
+    "pg": "^8.13.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^20.19.43",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.7.2"
+  }
+}

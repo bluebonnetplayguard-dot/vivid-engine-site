@@ -1,0 +1,56 @@
+# Vivid Engine fail2ban jails. Installed to /etc/fail2ban/jail.d/vivid.local by
+# scripts/update-security.sh (and setup-droplet.sh on a fresh server).
+#
+# Nginx runs in Docker and writes its logs to /opt/vivid/infra/logs/nginx (see
+# docker-compose.yml), which is what these jails read. Bans are applied with
+# iptables/nftables in front of Docker, so banned addresses can't reach Nginx at all.
+#
+# Check status:   fail2ban-client status            fail2ban-client status vivid-nginx-limit
+# Unban yourself: fail2ban-client set vivid-nginx-limit unbanip 1.2.3.4
+
+[DEFAULT]
+# Never ban the server itself or private Docker networks.
+ignoreip = 127.0.0.1/8 ::1 172.16.0.0/12 10.0.0.0/8
+# Repeat offenders get longer bans each time (1 h, 2 h, 4 h ... up to a week).
+bantime.increment = true
+bantime.factor = 2
+bantime.maxtime = 1w
+# Docker publishes ports through its own chains; banning in the FORWARD path with
+# the DOCKER-USER chain is what actually blocks traffic to the containers.
+banaction = iptables-multiport
+chain = DOCKER-USER
+
+[sshd]
+enabled = true
+maxretry = 4
+bantime = 2h
+
+# Addresses that keep hitting Nginx rate limits (HTTP 429 from limit_req/limit_conn).
+[vivid-nginx-limit]
+enabled = true
+filter = vivid-nginx-limit
+logpath = /opt/vivid/infra/logs/nginx/vivid-access.log
+maxretry = 30
+findtime = 10m
+bantime = 1h
+port = http,https
+
+# Exploit scanners: WordPress/PHP probes, config and source-control files (answered 444 by Nginx).
+[vivid-nginx-probe]
+enabled = true
+filter = vivid-nginx-probe
+logpath = /opt/vivid/infra/logs/nginx/vivid-access.log
+maxretry = 5
+findtime = 10m
+bantime = 24h
+port = http,https
+
+# Password guessing: repeated failed sign-in / registration / OTP attempts on the API.
+[vivid-auth]
+enabled = true
+filter = vivid-auth
+logpath = /opt/vivid/infra/logs/nginx/vivid-access.log
+maxretry = 20
+findtime = 15m
+bantime = 2h
+port = http,https

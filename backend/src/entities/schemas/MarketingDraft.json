@@ -1,0 +1,85 @@
+{
+  "name": "MarketingDraft",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "content": {
+      "type": "string",
+      "maxLength": 20000
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "social_post",
+        "blog",
+        "lead_follow_up",
+        "campaign_plan"
+      ]
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "Facebook",
+        "Instagram",
+        "LinkedIn",
+        "Google Business",
+        "Website",
+        "Email",
+        "Campaign"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "reviewed"
+      ],
+      "default": "draft"
+    },
+    "lead_id": {
+      "type": "string"
+    },
+    "lead_source": {
+      "type": "string",
+      "enum": [
+        "Lead",
+        "Inquiry"
+      ]
+    },
+    "recipient_email": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "content",
+    "type",
+    "channel",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

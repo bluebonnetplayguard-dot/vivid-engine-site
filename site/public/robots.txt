@@ -1,0 +1,25 @@
+User-agent: *
+Disallow: /admin
+Disallow: /portal
+Disallow: /account
+Disallow: /settings
+Disallow: /checkout
+Disallow: /search
+Disallow: /ai-search
+Disallow: /recents
+Disallow: /favorites
+Disallow: /projects
+Disallow: /partners/dashboard
+Disallow: /build/my-projects
+Disallow: /create/my-media
+Disallow: /video/edit
+Disallow: /video/account
+Disallow: /start
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /api/
+Allow: /
+
+Sitemap: https://vividenginesolutions.com/sitemap.xml

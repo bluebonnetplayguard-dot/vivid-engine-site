@@ -1,0 +1,172 @@
+{
+  "name": "ServiceInquiry",
+  "type": "object",
+  "properties": {
+    "inquiryNumber": {
+      "type": "string"
+    },
+    "legalBusinessName": {
+      "type": "string"
+    },
+    "dba": {
+      "type": "string"
+    },
+    "companyName": {
+      "type": "string"
+    },
+    "contactName": {
+      "type": "string"
+    },
+    "contactEmail": {
+      "type": "string"
+    },
+    "contactPhone": {
+      "type": "string"
+    },
+    "businessAddress": {
+      "type": "string"
+    },
+    "industry": {
+      "type": "string"
+    },
+    "existingWebsite": {
+      "type": "string"
+    },
+    "existingDomain": {
+      "type": "string"
+    },
+    "googleBusinessProfile": {
+      "type": "string"
+    },
+    "serviceAreas": {
+      "type": "string"
+    },
+    "businessGoals": {
+      "type": "string"
+    },
+    "targetCustomer": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "requestedServices": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requestedWebsiteFeatures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requestedAppFeatures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "customFeatureRequest": {
+      "type": "string"
+    },
+    "preferredConsultationMethod": {
+      "type": "string",
+      "enum": [
+        "In Person",
+        "Phone",
+        "Video Call"
+      ],
+      "default": "Video Call"
+    },
+    "preferredConsultationDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "domainOption": {
+      "type": "string",
+      "enum": [
+        "client_owns",
+        "vivid_manages",
+        "transfer_help",
+        "recommendations"
+      ],
+      "default": "client_owns"
+    },
+    "managedDomainAcknowledged": {
+      "type": "boolean",
+      "default": false
+    },
+    "termsAcknowledged": {
+      "type": "boolean",
+      "default": false
+    },
+    "acceptedName": {
+      "type": "string"
+    },
+    "acceptedTitle": {
+      "type": "string"
+    },
+    "acceptedDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "signatureAcknowledgment": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "New",
+        "Quote Requested",
+        "Contacted",
+        "Consultation Scheduled",
+        "Scoping",
+        "Proposal Sent",
+        "Awaiting Acceptance",
+        "Accepted",
+        "Declined",
+        "Archived"
+      ],
+      "default": "New"
+    },
+    "ownerNotes": {
+      "type": "string"
+    },
+    "assignedOwnerUserId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "contactName",
+    "contactEmail"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

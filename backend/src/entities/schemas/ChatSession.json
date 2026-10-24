@@ -1,0 +1,66 @@
+{
+  "name": "ChatSession",
+  "type": "object",
+  "properties": {
+    "widget_id": {
+      "type": "string"
+    },
+    "visitor_name": {
+      "type": "string"
+    },
+    "visitor_email": {
+      "type": "string"
+    },
+    "business_type": {
+      "type": "string"
+    },
+    "current_site_status": {
+      "type": "string"
+    },
+    "budget_range": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "default": "ai_handled"
+    },
+    "assigned_to_name": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "last_message": {
+      "type": "string"
+    },
+    "booked": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "widget_id"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

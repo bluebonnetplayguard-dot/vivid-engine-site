@@ -1,0 +1,108 @@
+{
+  "name": "DomainLeaseCancellationRequest",
+  "type": "object",
+  "properties": {
+    "companyId": {
+      "type": "string"
+    },
+    "managedDomainLeaseId": {
+      "type": "string"
+    },
+    "clientUserId": {
+      "type": "string"
+    },
+    "clientEmail": {
+      "type": "string"
+    },
+    "domainName": {
+      "type": "string"
+    },
+    "requestDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "requestedEffectiveDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "requestReason": {
+      "type": "string"
+    },
+    "requestDetails": {
+      "type": "string"
+    },
+    "comments": {
+      "type": "string"
+    },
+    "clientAcknowledgment": {
+      "type": "boolean",
+      "default": false
+    },
+    "agreementAcknowledgment": {
+      "type": "boolean",
+      "default": false
+    },
+    "agreementVersion": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Submitted",
+        "Under Review",
+        "Additional Information Needed",
+        "Approved For Term End",
+        "Declined",
+        "Completed",
+        "Withdrawn"
+      ],
+      "default": "Submitted"
+    },
+    "ownerDecision": {
+      "type": "string"
+    },
+    "ownerDecisionNotes": {
+      "type": "string"
+    },
+    "reviewedByOwnerUserId": {
+      "type": "string"
+    },
+    "reviewedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "managedDomainLeaseId",
+    "clientUserId"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.clientUserId": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

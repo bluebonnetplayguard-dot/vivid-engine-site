@@ -1,0 +1,60 @@
+{
+  "name": "Lead",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "company": {
+      "type": "string"
+    },
+    "service_interest": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "default": "new"
+    },
+    "estimated_value": {
+      "type": "number",
+      "default": 0
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
