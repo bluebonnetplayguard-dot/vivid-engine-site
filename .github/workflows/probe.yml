@@ -1,7 +1,19 @@
-name: probe
-on: push
+name: probe-backend
+'on': push
 jobs:
-  hello:
+  backend:
+    name: Docker image, smoke test and repo checks
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: null
     steps:
-      - run: echo hello
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+    - name: Full release check (scripts/verify-release.sh)
+      run: bash scripts/verify-release.sh
