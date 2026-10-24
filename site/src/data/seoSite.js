@@ -2,6 +2,7 @@
 import { SERVICE_AREAS } from '@/data/serviceAreas';
 import { PLANS, ADD_ONS } from '@/config/pricing';
 import { BUSINESS, whatsappContactPoint } from '@/config/business';
+import { AREAS } from '@/config/areas';
 import { SEARCH_PLANS, formatUsd, planPrice } from '@/config/pricing-catalog';
 
 export const SITE = {
@@ -63,7 +64,11 @@ export const localBusinessLd = {
     whatsappContactPoint,
   ],
   knowsAbout: ['Web design', 'App development', 'React', 'Progressive web apps', 'iOS and Android apps', 'Square POS', 'CRM', 'Google Calendar integration', 'Local SEO', 'Website hosting and maintenance'],
-  areaServed: ['Harris County, Texas', 'Montgomery County, Texas', 'Jefferson County, Texas', 'Orange County, Texas', 'Hardin County, Texas', 'Calcasieu Parish, Louisiana', 'Lafayette Parish, Louisiana', 'Cameron Parish, Louisiana', 'Beauregard Parish, Louisiana', 'Jefferson Davis Parish, Louisiana'].map(name => ({ '@type': 'AdministrativeArea', name })),
+  // The nine cities with their own pages, then the wider counties and parishes.
+  areaServed: [
+    ...AREAS.map(a => ({ '@type': 'City', name: `${a.city}, ${a.state === 'TX' ? 'Texas' : 'Louisiana'}`, url: `${SITE.url}/areas/${a.slug}` })),
+    ...['Harris County, Texas', 'Montgomery County, Texas', 'Jefferson County, Texas', 'Orange County, Texas', 'Hardin County, Texas', 'Waller County, Texas', 'Fort Bend County, Texas', 'Brazoria County, Texas', 'Chambers County, Texas', 'Calcasieu Parish, Louisiana', 'Lafayette Parish, Louisiana', 'Cameron Parish, Louisiana', 'Beauregard Parish, Louisiana', 'Jefferson Davis Parish, Louisiana'].map(name => ({ '@type': 'AdministrativeArea', name })),
+  ],
   hasOfferCatalog: {
     '@type': 'OfferCatalog', name: 'Web and app services',
     itemListElement: [...PLANS, ...ADD_ONS].filter(item => item.price !== null).map(item => ({
