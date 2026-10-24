@@ -2,10 +2,10 @@ const beaumont = {
   path: '/locations/beaumont-web-design',
   title: 'Web Design & App Development in Beaumont, TX | Vivid Engine Solutions',
   description: 'Custom websites, apps, POS and CRM for Beaumont, Port Arthur, Orange and Southeast Texas businesses. Locally owned, in-person consultations, sites from $999.',
-  parent: 'Locations', parentPath: '/#areas', crumb: 'Beaumont', breadcrumbName: 'Beaumont Web Design',
+  parent: 'Locations', parentPath: '/areas', crumb: 'Beaumont', breadcrumbName: 'Beaumont Web Design',
   eyebrow: 'Beaumont · Port Arthur · Orange', heading: 'Web Design & App Development in', highlight: 'Beaumont, TX',
   lede: 'Custom websites, mobile apps, POS and CRM systems for Southeast Texas businesses, built by a local team that meets you in person and keeps everything running after launch.',
-  primary: 'Get a free site audit', secondary: ['See pricing', '/#pricing'], where: 'Serving Jefferson, Orange & Hardin counties',
+  primary: 'Get a free site audit', secondary: ['See pricing', '/pricing'], where: 'Serving Jefferson, Orange & Hardin counties',
   serviceName: 'Web Design & App Development in Beaumont, TX',
   serviceTypes: ['Website design', 'Website maintenance', 'App development', 'Domain leasing', 'POS and CRM systems'],
   schemaAreas: [

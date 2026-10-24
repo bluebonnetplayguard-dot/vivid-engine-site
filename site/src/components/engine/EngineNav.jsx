@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useInShell } from '@/components/shell/ShellContext';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { Image } from '@/components/ui/image';
 
-export default function EngineNav() {
+function EngineNavInner() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   useEffect(() => { const close = e => { if (e.key === 'Escape') setOpen(false); }; document.addEventListener('keydown', close); return () => document.removeEventListener('keydown', close); }, []);
@@ -19,4 +20,9 @@ export default function EngineNav() {
     <a className="engine-button engine-primary engine-nav-cta" href={anchor('inquiry')}>Get a quote</a>
     <button className="engine-menu" type="button" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} aria-controls="engine-navigation" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button>
   </div></header>;
+}
+
+// Inside the shared shell (components/shell) the shell's own navigation is used instead.
+export default function EngineNav(props) {
+  return useInShell() ? null : <EngineNavInner {...props} />;
 }

@@ -21,12 +21,12 @@ export default function HomeNavbar() {
         {links.map(([label, id]) => <a key={id} href={`#${id}`}>{label}</a>)}
         <Link to="/login">Client Login</Link>
       </nav>
-      <a href="#inquiry" className="mk-btn hidden shrink-0 sm:inline-flex">Get a quote</a>
+      <a href="/quote" className="mk-btn hidden shrink-0 sm:inline-flex">Get a quote</a>
       <button type="button" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border lg:hidden" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} aria-controls="home-navlinks" onClick={() => setOpen(value => !value)}>{open ? <X size={22} /> : <Menu size={22} />}</button>
     </div>
     {open && <nav id="home-navlinks" aria-label="Mobile homepage navigation" className="flex flex-col gap-4 border-t border-border bg-background px-5 py-5 lg:hidden">
       {links.map(([label, id]) => <a key={id} href={`#${id}`} onClick={() => setOpen(false)}>{label}</a>)}
-      <Link to="/login">Client Login</Link><a href="#inquiry" className="mk-btn text-center" onClick={() => setOpen(false)}>Get a quote</a>
+      <Link to="/login">Client Login</Link><a href="/quote" className="mk-btn text-center" onClick={() => setOpen(false)}>Get a quote</a>
     </nav>}
   </header>;
 }

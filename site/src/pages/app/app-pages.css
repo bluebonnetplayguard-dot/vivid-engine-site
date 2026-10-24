@@ -1,0 +1,31 @@
+/* Signed-in pages inside the shell (Recents, Favorites, Projects, Account). Engine theme tokens. */
+.ap-wrap{max-width:900px;margin:0 auto;padding:12px max(24px,env(safe-area-inset-right)) 64px 24px;color:var(--text)}
+.ap-wrap h1{font-size:clamp(1.6rem,3vw,2.2rem)!important;font-weight:800!important;margin:8px 0 14px!important}
+.ap-wrap h2{font-size:1.15rem!important;margin:0 0 10px!important}
+.ap-sub,.ap-note{color:var(--muted);margin-bottom:12px!important}
+.ap-note{color:#f5e2b8}
+.ap-note a,.ap-empty a,.ap-locked a:not(.engine-button){color:var(--glow)}
+.ap-locked{display:flex;gap:14px;padding:18px;border:1px dashed rgba(255,210,122,.4);border-radius:14px;background:rgba(255,210,122,.05)}
+.ap-locked svg{color:#ffd27a;flex:none;margin-top:3px}
+.ap-locked b{color:var(--chrome)}
+.ap-locked p{margin-top:8px!important}
+.ap-search{display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid var(--line-strong);border-radius:12px;background:var(--deep);margin-bottom:14px}
+.ap-search svg{color:var(--glow)}
+.ap-search input{flex:1;min-height:44px;border:0;background:transparent;color:var(--chrome);font:inherit;outline:none}
+.ap-msg{margin-bottom:10px!important;color:var(--glow)}
+.ap-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ap-list li{display:flex;align-items:center;gap:6px;padding:4px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.ap-list a{flex:1;min-width:0;display:block;padding:10px 12px;color:var(--chrome)}
+.ap-list a b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap-list a small{color:var(--muted)}
+.ap-list button{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+.ap-list button:hover{color:var(--chrome);border-color:var(--line-strong)}
+.ap-list button[aria-pressed="true"]{color:#ffd27a}
+.ap-settings{margin-top:32px;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--deep);display:grid;gap:12px}
+.ap-settings label{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.ap-settings select{background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--chrome);font:inherit;padding:6px 8px}
+.ap-row{display:flex;flex-wrap:wrap;gap:10px}
+.ap-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.ap-card{display:block;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--text)}
+.ap-card b{display:block;color:var(--chrome);margin-bottom:4px}
+.ap-card:hover{border-color:var(--line-strong)}

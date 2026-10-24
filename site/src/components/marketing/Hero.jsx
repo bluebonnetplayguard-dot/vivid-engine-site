@@ -41,7 +41,7 @@ export default function Hero() {
           ))}
         </div>
 
-        <a href="#inquiry" className="ve-hero-cta">
+        <a href="/quote" className="ve-hero-cta">
           <Calendar size={18} aria-hidden="true" />
           <span>Get a quote</span>
           <span className="ve-hero-cta-arrow" aria-hidden="true">&rarr;</span>

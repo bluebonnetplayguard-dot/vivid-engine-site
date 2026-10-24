@@ -13,6 +13,6 @@ export default function ClientLoginSurface({ children, returnTo }) {
       {children}
       <p className="engine-login-hint">Don’t have an account? <Link to={'/register' + (returnTo !== '/' ? '?returnTo=' + encodeURIComponent(returnTo) : '')}>Create one</Link></p>
     </div></main>
-    <footer className="engine-login-footer">© {new Date().getFullYear()} Vivid Engine Solutions · New client? <Link to="/#inquiry">Get a quote</Link></footer>
+    <footer className="engine-login-footer">© {new Date().getFullYear()} Vivid Engine Solutions · New client? <Link to="/quote">Get a quote</Link></footer>
   </div>;
 }

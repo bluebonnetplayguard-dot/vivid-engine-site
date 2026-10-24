@@ -4,7 +4,7 @@ const appDevelopment = {
   description: 'Custom iPhone, Android and web apps for SETX & SWLA businesses: booking, Square POS, CRM and client portals, built and maintained by a local team.',
   ogTitle: 'Custom App Development for Local Businesses',
   ogDescription: 'iPhone, Android and web apps for SETX and SWLA businesses, planned in person and maintained after launch.',
-  parent: 'Services', parentPath: '/#services', crumb: 'Custom App Development',
+  parent: 'Services', parentPath: '/services', crumb: 'Custom App Development',
   eyebrow: 'iPhone · Android · Web', heading: 'Custom App Development for', highlight: 'SETX & SWLA', headingEnd: ' Businesses',
   lede: "Apps built around how your business actually runs: customer apps, booking, POS, CRM, client portals and staff tools. Planned with you in person, launched on your customers' phones, and maintained by the same local team.",
   primary: 'Plan your app', secondary: ['Which kind of app?', '/services/custom-app-development#options'], where: 'Beaumont · Port Arthur · Orange · Lake Charles · Sulphur',
@@ -54,6 +54,6 @@ const appDevelopment = {
     ['How do you keep customer data secure?', 'Apps use secure sign-in with passwords plus 2-step verification, passkeys (Face ID or fingerprint) and Sign in with Apple. Card payments are handled by Square, so card details never touch your app.'],
     ['Do you maintain the app after it launches?', 'Yes. Basic Care ($49/mo) covers hosting, security updates and backups. Turnkey Care ($99/mo) adds monthly edits, store listing changes, the site assistant and priority support.'],
   ],
-  cta: { title: 'Tell us about the app you need', description: "We'll set up a time to meet at your business, usually within the week.", secondary: ['Pay over time', '/#financing'] },
+  cta: { title: 'Tell us about the app you need', description: "We'll set up a time to meet at your business, usually within the week.", secondary: ['Pay over time', '/pay'] },
 };
 export default appDevelopment;

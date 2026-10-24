@@ -71,7 +71,7 @@ export default function BuildCard({ m, pending, canUndo, onApply, onDiscard, onU
       <button type="button" onClick={() => download('1/4"=1\'-0"')} disabled={!!downloading}><Download size={15} aria-hidden="true" />{downloading.includes('1/4') ? 'Making PDF…' : 'Drawings 1/4"=1\'-0" (PDF)'}</button>
       <button type="button" onClick={() => download('1/2"=1\'-0"')} disabled={!!downloading}><Ruler size={15} aria-hidden="true" />{downloading.includes('1/2') ? 'Making PDF…' : '1/2"=1\'-0"'}</button>
       {canUndo && !pending && <button type="button" onClick={onUndo}><Undo2 size={15} aria-hidden="true" />Undo last change</button>}
-      <Link className="is-quiet" to="/#inquiry">Have us draft it</Link>
+      <Link className="is-quiet" to="/quote">Have us draft it</Link>
     </div>}
     {error && <p className="ais-error" role="alert">{error}</p>}
     <p className="vb-note">Print drawings at 100% / Actual Size and check the 1-inch square with a ruler. Sizes are preliminary estimates, not engineering.</p>

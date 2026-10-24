@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useInShell } from '@/components/shell/ShellContext';
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Image } from '@/components/ui/image';
@@ -13,7 +14,7 @@ const LINKS = [
   { label: "Support", to: "/contact" },
 ];
 
-export default function LandingNav() {
+function LandingNavInner() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -84,4 +85,9 @@ export default function LandingNav() {
       )}
     </header>
   );
+}
+
+// Inside the shared shell (components/shell) the shell's own navigation is used instead.
+export default function LandingNav(props) {
+  return useInShell() ? null : <LandingNavInner {...props} />;
 }

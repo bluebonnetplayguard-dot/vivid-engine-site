@@ -8,6 +8,6 @@ export default function EnginePricing({ onSelect }) {
     <h3 className="engine-price-group">Monthly care <small>after launch</small></h3><EnginePlanGrid plans={PLANS.filter(plan => plan.billing === 'monthly')} onSelect={onSelect} care />
     <h3 className="engine-price-group" id="addons">Add-ons <small>only what you need</small></h3><EngineAddons onSelect={onSelect} />
     <p className="engine-disclaimer">Applicable sales tax is calculated at checkout.</p>
-    <p className="engine-pay-note">Already a client? <a href="/#pay">Pay an invoice online →</a> · Bigger build? <a href="/#financing">Pay over time →</a></p>
+    <p className="engine-pay-note">Already a client? <a href="/pay">Pay an invoice online →</a> · Bigger build? <a href="/pay">Pay over time →</a></p>
   </div></section>;
 }

@@ -28,7 +28,7 @@ export default function AboutLocal() {
                 <p className="text-sm text-muted-foreground"><span className="font-medium text-foreground">One vendor for everything.</span> Site, POS, CRM, SEO, hosting, and security — all under one roof.</p>
               </div>
             </div>
-            <a href="#contact" className="mt-8 inline-block"><Button>Book an in-person consult</Button></a>
+            <a href="/contact" className="mt-8 inline-block"><Button>Book an in-person consult</Button></a>
           </div>
           <div className="border border-border">
             <div className="flex items-center justify-between border-b border-border bg-secondary/40 px-5 py-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useInShell } from '@/components/shell/ShellContext';
 import BusinessContact from '@/components/marketing/BusinessContact';
 import InstallApp from '@/components/InstallApp';
 
@@ -15,7 +16,7 @@ const LINKS = [
   { label: "Delete account", to: "/delete-account" },
 ];
 
-export default function Footer() {
+function FooterInner() {
   return (
     <footer>
       <nav style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "1.25rem", marginBottom: "1.5rem" }}>
@@ -28,4 +29,9 @@ export default function Footer() {
       <InstallApp />
     </footer>
   );
+}
+
+// Inside the shared shell (components/shell) the shell's own navigation is used instead.
+export default function Footer(props) {
+  return useInShell() ? null : <FooterInner {...props} />;
 }

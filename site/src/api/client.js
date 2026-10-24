@@ -249,8 +249,12 @@ const functions = {
   },
 };
 
+// Counts visits and clicks only after the visitor allows analytics (see components/shell/CookieConsent.jsx).
 const analytics = {
   track({ eventName, properties } = {}) {
+    let allowed = false;
+    try { allowed = localStorage.getItem('ve-cookie-consent') === 'all'; } catch { /* storage blocked: treat as not allowed */ }
+    if (!allowed) return;
     request('POST', '/analytics/track', { body: { eventName, properties } }).catch(() => {});
   },
 };
@@ -291,16 +295,18 @@ const aiSearch = {
   team: () => request('GET', '/ai-search/team'),
   addMember: email => request('POST', '/ai-search/team', { body: { email } }),
   removeMember: id => request('DELETE', `/ai-search/team/${encodeURIComponent(id)}`),
-  // Streams an answer. onEvent receives: thread, status, contributor, sources, delta, done, error.
-  // Optional: mode (search|build|create|biz), model (auto|claude|perplexity|gemini|combined),
-  // private (never save), safeResults (standard|strict|off). The server ignores fields it doesn't support yet.
-  // history: recent turns for conversations the server doesn't save (free plans, private mode).
-  async ask({ question, threadId, signal, onEvent, mode, model, private: isPrivate, safeResults, history }) {
+  // Streams an answer as server-sent events. onEvent(type, data) receives: thread | unsaved, routing, status,
+  // sources, delta, answer, usage_warning, followups, done | error. Works signed out too (a few guest searches a day).
+  // mode: search|build|create|business  engine: auto|perplexity|claude|gemini|combined  depth: quick|pro|deep
+  // focus: web|local|news|shopping|images|videos|academic|business  attachments: [{ mime, data(base64), name }]
+  // private: never save  safeResults: standard|strict|off  lang: en|es
+  // history: recent turns for conversations the server doesn't save (guests, free plans, private mode).
+  async ask({ question, threadId, signal, onEvent, mode, engine, depth, focus, attachments, private: isPrivate, safeResults, lang, history }) {
     await ensureToken();
     const send = () => fetch(`${API}/ai-search/ask`, {
       method: 'POST', credentials: 'same-origin', signal,
       headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
-      body: JSON.stringify({ question, threadId: threadId || undefined, mode, model, private: isPrivate || undefined, safeResults, history: threadId ? undefined : history }),
+      body: JSON.stringify({ question, threadId: threadId || undefined, mode, engine, depth, focus, attachments: attachments?.length ? attachments : undefined, private: isPrivate || undefined, safeResults, lang, history: threadId ? undefined : history }),
     });
     let res;
     try {
@@ -417,6 +423,18 @@ const payments = {
   sendInvoice: id => request('POST', `/payments/invoices/${encodeURIComponent(id)}/send`, { body: {} }),
 };
 
+// Saved conversations (paid plans). Deleting always works, whatever the plan.
+const history = {
+  me: () => request('GET', '/history/me'),
+  settings: body => request('PATCH', '/history/settings', { body }),
+  list: (query = {}) => request('GET', '/history/conversations', { query }),
+  get: id => request('GET', `/history/conversations/${encodeURIComponent(id)}`),
+  update: (id, body) => request('PATCH', `/history/conversations/${encodeURIComponent(id)}`, { body }),
+  remove: id => request('DELETE', `/history/conversations/${encodeURIComponent(id)}`),
+  removeAll: () => request('DELETE', '/history/conversations', { query: { confirm: 'all' } }),
+  exportAll: () => request('GET', '/history/export'),
+};
+
 // Admin only: the Billing Monitor (what each AI call cost, provider balances, budgets, alerts).
 const billing = {
   summary: () => request('GET', '/admin/billing/summary'),
@@ -434,5 +452,5 @@ const billing = {
   unthrottle: userId => request('DELETE', `/admin/billing/throttles/${encodeURIComponent(userId)}`),
 };
 
-export const api = { auth, entities, functions, analytics, aiSearch, video, buildStudio, stackAdvisor, payments, billing };
+export const api = { auth, entities, functions, analytics, aiSearch, history, video, buildStudio, stackAdvisor, payments, billing };
 export default api;

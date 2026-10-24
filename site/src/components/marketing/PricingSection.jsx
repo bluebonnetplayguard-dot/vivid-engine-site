@@ -34,7 +34,7 @@ export default function PricingSection() {
         <div className="mt-10 border border-primary/40 bg-primary/5 p-8 text-center md:p-12">
           <h3 className="font-heading text-2xl font-bold">Ready to launch your project?</h3>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">Get a free consultation and a clear quote — let's bring your idea online.</p>
-          <a href="#contact" className="mt-6 inline-block"><Button size="lg">Start a project</Button></a>
+          <a href="/contact" className="mt-6 inline-block"><Button size="lg">Start a project</Button></a>
         </div>
       </div>
     </section>

@@ -4,7 +4,7 @@ const lakeCharles = {
   description: 'Custom iPhone & Android apps, websites, POS and CRM for Lake Charles and Sulphur businesses. We meet in person anywhere in Calcasieu Parish.',
   ogTitle: 'Custom App Development & Web Design in Lake Charles, LA',
   ogDescription: 'Apps, websites, POS and CRM for Southwest Louisiana businesses, with in-person consultations across Calcasieu, Cameron, Beauregard and Jefferson Davis parishes.',
-  parent: 'Locations', parentPath: '/#areas', crumb: 'Lake Charles', breadcrumbName: 'Lake Charles App Development',
+  parent: 'Locations', parentPath: '/areas', crumb: 'Lake Charles', breadcrumbName: 'Lake Charles App Development',
   eyebrow: 'Lake Charles · Sulphur · Southwest Louisiana', heading: 'Custom App Development & Web Design in', highlight: 'Lake Charles, LA',
   lede: "Apps your customers install on their phones, client portals, booking tools, POS and CRM systems, designed with you in person and maintained by the same local team after launch.",
   primary: 'Plan your app', secondary: ['How we build apps', '/services/custom-app-development'], where: 'Serving Calcasieu, Cameron, Beauregard & Jefferson Davis parishes',
@@ -62,6 +62,6 @@ const lakeCharles = {
     ['Do I need a website before an app?', "Not always. Many Southwest Louisiana businesses start with one custom site that also installs as an app, which keeps cost down. We'll recommend what fits during your free audit."],
     ['Who maintains the app after launch?', 'We do. Basic Care ($49/mo) keeps it hosted, secure and backed up. Turnkey Care ($99/mo) adds monthly edits, store listing changes, the site assistant and priority support.'],
   ],
-  cta: { title: 'Have an app idea for your Lake Charles business?', description: "Tell us what you have in mind and we'll set up a time to meet at your business.", secondary: ['See pricing', '/#pricing'], related: [2, 0] },
+  cta: { title: 'Have an app idea for your Lake Charles business?', description: "Tell us what you have in mind and we'll set up a time to meet at your business.", secondary: ['See pricing', '/pricing'], related: [2, 0] },
 };
 export default lakeCharles;

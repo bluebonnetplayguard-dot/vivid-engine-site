@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useInShell } from '@/components/shell/ShellContext';
 import { Image } from '@/components/ui/image';
 
 const GROUPS = [
@@ -25,7 +26,7 @@ const GROUPS = [
   },
 ];
 
-export default function LandingFooter() {
+function LandingFooterInner() {
   return (
     <footer className="border-t border-slate-800 bg-[#05080e] py-14 text-slate-400">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
@@ -69,4 +70,9 @@ export default function LandingFooter() {
       </div>
     </footer>
   );
+}
+
+// Inside the shared shell (components/shell) the shell's own navigation is used instead.
+export default function LandingFooter(props) {
+  return useInShell() ? null : <LandingFooterInner {...props} />;
 }

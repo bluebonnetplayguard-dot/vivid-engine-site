@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { api } from '@/api/client';
 import { answerEventHandler } from '@/components/aisearch/AnswerParts';
 import { SAFE_KEY } from '@/components/shell/AppShell';
+import { useLang } from '@/lib/lang';
+import { useNotify } from '@/components/shell/Notifications';
 
 const readSafe = () => { try { return localStorage.getItem(SAFE_KEY) || 'standard'; } catch { return 'standard'; } };
 // Search requests that are really asking for a design go to Build Studio.
@@ -21,6 +23,11 @@ export default function useAskThread(account) {
   const [privateMode, setPrivateMode] = useState(false);
   const [mode, setMode] = useState('search');
   const [model, setModel] = useState('auto');
+  const [depth, setDepth] = useState('quick');
+  const [focus, setFocus] = useState('');
+  const [attachments, setAttachments] = useState([]);
+  const { lang } = useLang();
+  const { notify } = useNotify();
   const abortRef = useRef(null);
   const autoAsked = useRef(false);
   // Build Studio: the applied model, earlier versions for undo. Changes wait for approval before they apply.
@@ -95,26 +102,27 @@ export default function useAskThread(account) {
   const ask = useCallback(async raw => {
     const question = raw.trim().slice(0, 4000);
     if (!question || busy) return;
-    // Visitors who aren't signed in sign in first and land back here with the question answered.
-    if (!isAuthenticated) { api.auth.redirectToLogin(`/?aiq=${encodeURIComponent(question.slice(0, 1500))}`); return; }
     if (mode === 'stack') { await askStack(question); return; }
-    if (mode === 'build' || (mode === 'search' && BUILD_INTENT.test(question))) {
-      await askBuild(question);
-      return;
-    }
+    // Designs with a size ("a 12x16 deck") go to Build Studio; everything else goes to the AI router.
+    if ((mode === 'build' || mode === 'search') && BUILD_INTENT.test(question)) { await askBuild(question); return; }
     setBusy(true);
-    setMessages(list => [...list, { role: 'user', content: question }, { role: 'assistant', content: '', status: 'Starting…', engines: [], sources: [], question }]);
+    const files = attachments;
+    setAttachments([]);
+    setMessages(list => [...list, { role: 'user', content: question, files: files.map(f => f.name) }, { role: 'assistant', content: '', status: 'Starting…', sources: [], question }]);
     const controller = new AbortController();
     abortRef.current = controller;
     try {
       await api.aiSearch.ask({
         question, threadId, signal: controller.signal,
-        mode, model, private: privateMode, safeResults: readSafe(),
+        mode: mode === 'biz' ? 'business' : mode, engine: model, depth, focus: focus || undefined,
+        attachments: isAuthenticated ? files.map(({ mime, data, name }) => ({ mime, data, name })) : undefined,
+        private: privateMode, safeResults: readSafe(), lang,
         // Unsaved conversations carry their own context; saved ones are read from the server by threadId.
         history: messages.filter(m => !m.kind && !m.error && !m.status && m.content).slice(-12).map(m => ({ role: m.role, content: m.content })),
         onEvent: answerEventHandler(patchLast, {
           onThread: id => setThreadId(id),
-          onDone: data => setMe?.(prev => (prev ? { ...prev, usage: data.usage } : prev)),
+          onDone: data => setMe?.(prev => (prev ? { ...prev, usage: data.usage?.guest ? prev.usage : data.usage, allowance: data.allowance ?? prev.allowance } : prev)),
+          onUsageWarning: w => notify({ key: `usage-${w.level}`, title: w.message, link: '/pricing/search', level: w.level === 'limit100' ? 'critical' : 'warn' }),
         }),
       });
     } catch (e) {
@@ -125,7 +133,7 @@ export default function useAskThread(account) {
       setBusy(false);
       if (access?.allowed && !privateMode) refresh?.();
     }
-  }, [busy, isAuthenticated, threadId, mode, model, privateMode, access?.allowed, refresh, setMe, askBuild, askStack, messages]);
+  }, [busy, isAuthenticated, threadId, mode, model, depth, focus, attachments, lang, privateMode, access?.allowed, refresh, setMe, askBuild, askStack, messages, notify]);
 
   const stop = () => abortRef.current?.abort();
 
@@ -142,19 +150,19 @@ export default function useAskThread(account) {
       setThreadId(id);
       setMessages(t.messages.flatMap((m, i, all) => (m.role === 'user'
         ? [{ role: 'user', content: m.content }]
-        : [{ role: 'assistant', content: m.content, sources: m.sources, engines: m.contributors, question: all[i - 1]?.content || '' }])));
+        : [{ role: 'assistant', content: m.content, sources: m.sources, meta: m.engine ? { provider: m.engine, engine: m.engine } : undefined, question: all[i - 1]?.content || '' }])));
       window.scrollTo({ top: 0 });
     } catch { /* thread gone or not allowed */ }
   }, [busy]);
 
-  // Back from sign-in with a question in the link (/?aiq=...).
+  // A question in the link (/?aiq=... or /search?q=...), for example back from sign-in.
   useEffect(() => {
-    const q = params.get('aiq');
+    const q = params.get('aiq') || params.get('q');
     if (!authChecked || autoAsked.current || !q) return;
     autoAsked.current = true;
-    params.delete('aiq'); setParams(params, { replace: true });
-    if (isAuthenticated) ask(q);
-  }, [authChecked, isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+    params.delete('aiq'); params.delete('q'); setParams(params, { replace: true });
+    ask(q);
+  }, [authChecked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Free and guest conversations aren't saved: warn before the tab closes with one open.
   useEffect(() => {
@@ -166,5 +174,6 @@ export default function useAskThread(account) {
   }, [messages.length, access?.allowed, privateMode]);
 
   return { messages, threadId, busy, ask, stop, reset, openThread, privateMode, setPrivateMode, mode, setMode, model, setModel,
+    depth, setDepth, focus, setFocus, attachments, setAttachments,
     buildSpec, canUndo: undoStack.length > 0, applyPending, discardPending, undoBuild };
 }

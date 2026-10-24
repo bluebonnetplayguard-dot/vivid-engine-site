@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
+import { useInShell } from '@/components/shell/ShellContext';
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Image } from '@/components/ui/image';
 
-export default function Navbar() {
+function NavbarInner() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const links = [
@@ -49,4 +50,9 @@ export default function Navbar() {
       )}
     </header>
   );
+}
+
+// Inside the shared shell (components/shell) the shell's own navigation is used instead.
+export default function Navbar(props) {
+  return useInShell() ? null : <NavbarInner {...props} />;
 }
