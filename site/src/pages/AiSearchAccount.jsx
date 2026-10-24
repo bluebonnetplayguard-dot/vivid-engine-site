@@ -6,6 +6,9 @@ import EngineNav from '@/components/engine/EngineNav';
 import '@/components/engine/engine.css';
 import '@/components/aisearch/ai-search.css';
 
+const FREE_IDS = new Set(['free', 'search_free']);
+const TOP_IDS = new Set(['max', 'search_max']);
+
 function Meter({ label, used, limit }) {
   const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
   return <div><div className="ais-row" style={{ borderTop: 0, padding: 0 }}><span>{label}</span><span>{used} of {limit}</span></div>
@@ -56,7 +59,7 @@ export default function AiSearchAccount() {
     const load = () => api.aiSearch.me().then(data => {
       setMe(data);
       // Right after checkout, Square's confirmation can take a few seconds to arrive.
-      if (params.get('checkout') === 'success' && data.tier.id === 'free' && tries++ < 10) timer = setTimeout(load, 2000);
+      if (params.get('checkout') === 'success' && FREE_IDS.has(data.tier.id) && tries++ < 10) timer = setTimeout(load, 2000);
     }).catch(e => setError(e.message));
     load();
     return () => clearTimeout(timer);
@@ -82,14 +85,15 @@ export default function AiSearchAccount() {
         <span className="engine-caps">Vivid AI Search</span>
         <h1>Your plan</h1>
       </header>
-      {params.get('checkout') === 'success' && <div className="ais-ok" role="status">Thank you! {me && me.tier.id !== 'free' ? `Your ${me.tier.name} plan is active.` : 'Confirming your payment…'}</div>}
+      {params.get('checkout') === 'success' && <div className="ais-ok" role="status">Thank you! {me && !FREE_IDS.has(me.tier.id) ? `Your ${me.tier.name} plan is active.` : 'Confirming your payment…'}</div>}
       {error && <div className="ais-error" role="alert">{error}</div>}
       {!me && !error && <p>Loading…</p>}
       {me && <>
         <section className="ais-panel" aria-labelledby="plan-h">
           <h2 id="plan-h">{me.tier.name} · {me.tier.modelLabel}</h2>
           <p style={{ color: 'var(--muted)', marginBottom: 16 }}>
-            {me.tier.contributors.length ? `Second opinions from ${me.tier.contributors.join(', ')}. ` : ''}
+            {me.router?.engines?.length ? `Answers from ${me.router.engines.filter(e => e.available).map(e => e.label).join(', ')}${me.router.combined ? ', or all of them combined' : ''}. ` : ''}
+            {me.allowance ? `${Math.round(me.allowance.pct * 100)}% of this month's AI allowance used. ` : ''}
             {sub?.status && sub.status !== 'active' ? `Billing status: ${sub.status.replace('_', ' ')}. ` : ''}
             {sub?.cancels_on ? `Cancelled: your plan stays on until ${new Date(sub.cancels_on).toLocaleDateString()}. ` : sub?.current_period_end ? `Renews ${new Date(sub.current_period_end).toLocaleDateString()}. ` : ''}
             {sub?.provider && sub.provider !== 'square' ? 'This plan was set up with our previous payment provider; WhatsApp us to change it. ' : ''}
@@ -101,7 +105,7 @@ export default function AiSearchAccount() {
             <Link className="engine-button engine-primary" to="/ai-search">Ask a question</Link>
             {sub?.can_manage_billing && !sub.cancels_on && !confirmCancel && <button type="button" className="engine-button engine-outline" onClick={() => setConfirmCancel(true)}>Cancel plan</button>}
             {sub?.can_manage_billing && <Link className="engine-button engine-outline" to={`/checkout?kind=ai_search&tier=${me.tier.id}&update_card=1`}>Update card</Link>}
-            {me.role !== 'member' && me.tier.id !== 'max' && <Link className="engine-button engine-outline" to="/ai-search/pricing">{me.tier.id === 'free' ? 'Upgrade' : 'Compare plans'}</Link>}
+            {me.role !== 'member' && !TOP_IDS.has(me.tier.id) && <Link className="engine-button engine-outline" to="/pricing/search">{FREE_IDS.has(me.tier.id) ? 'Upgrade' : 'Compare plans'}</Link>}
           </div>
           {confirmCancel && <div className="ais-locked" role="alertdialog" aria-labelledby="cancel-h" style={{ marginTop: 12 }}>
             <b id="cancel-h">Cancel your plan?</b>

@@ -31,7 +31,7 @@ const DeleteAccount = lazy(() => import('@/pages/DeleteAccount'));
 const ServiceAreas = lazy(() => import('@/pages/ServiceAreas'));
 const ServiceAreaCity = lazy(() => import('@/pages/ServiceAreaCity'));
 const Services = lazy(() => import('@/pages/Services'));
-const Pricing = lazy(() => import('@/pages/Pricing'));
+const PricingPage = lazy(() => import('@/pages/pricing/PricingPage'));
 const DomainLeasing = lazy(() => import('@/pages/DomainLeasing'));
 const FAQ = lazy(() => import('@/pages/FAQ'));
 const ClientDomain = lazy(() => import('@/pages/ClientDomain'));
@@ -51,7 +51,6 @@ const AdminMarketingDrafts = lazy(() => import('@/pages/admin/AdminMarketingDraf
 const AdminPricing = lazy(() => import('@/pages/admin/AdminPricing'));
 const AdminBilling = lazy(() => import('@/pages/admin/AdminBilling'));
 const AiSearch = lazy(() => import('@/pages/AiSearch'));
-const AiSearchPricing = lazy(() => import('@/pages/AiSearchPricing'));
 const AiSearchAccount = lazy(() => import('@/pages/AiSearchAccount'));
 const VideoStudio = lazy(() => import('@/pages/VideoStudio'));
 const VideoPricing = lazy(() => import('@/pages/VideoPricing'));
@@ -106,13 +105,14 @@ const AuthenticatedApp = () => {
       <Route path="/locations/lake-charles-app-development" element={<LakeCharlesAppDevelopment />} />
       <Route path="/services/custom-app-development" element={<CustomAppDevelopment />} />
       <Route path="/maintenance" element={<Maintenance />} />
-      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/pricing/:category" element={<PricingPage />} />
       <Route path="/domain-leasing" element={<DomainLeasing />} />
       <Route path="/faq" element={<FAQ />} />
       <Route path="/service-areas" element={<ServiceAreas />} />
       <Route path="/service-areas/:slug" element={<ServiceAreaCity />} />
       <Route path="/ai-search" element={<AiSearch />} />
-      <Route path="/ai-search/pricing" element={<AiSearchPricing />} />
+      <Route path="/ai-search/pricing" element={<Navigate to="/pricing/search" replace />} />
       <Route path="/video" element={<VideoStudio />} />
       <Route path="/video/pricing" element={<VideoPricing />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>

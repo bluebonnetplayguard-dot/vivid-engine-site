@@ -102,7 +102,7 @@ export default function AiSearchEmbed() {
             <Engines engines={m.engines} />
             {m.status && <div className="ais-status" role="status"><span className="ais-dot" aria-hidden="true" />{m.status}</div>}
             {m.content && <ReactMarkdown components={mdLinks}>{m.content}</ReactMarkdown>}
-            {m.error && <div className="ais-error" role="alert">{m.error.message}{UPGRADE_CODES.has(m.error.code) && <> <Link to="/ai-search/pricing">See plans</Link></>}</div>}
+            {m.error && <div className="ais-error" role="alert">{m.error.message}{UPGRADE_CODES.has(m.error.code) && <> <Link to="/pricing/search">See plans</Link></>}</div>}
             <Sources sources={m.sources} />
           </div>}
         </div>)}
@@ -128,8 +128,8 @@ export default function AiSearchEmbed() {
             <small>AI answers can be wrong. Check the sources for anything important.</small>
           </>
           : isAuthenticated && me
-            ? <small>{me.tier.name} plan{usage && <> · {usage.today} of {usage.dailyLimit} questions today</>} · <Link to="/ai-search/account">Your plan</Link> · <Link to="/ai-search/pricing">Upgrade</Link></small>
-            : <small>Free account: 5 questions a day. <Link to="/ai-search/pricing">See plans</Link></small>}
+            ? <small>{me.tier.name} plan{usage && <> · {usage.today} of {usage.dailyLimit} questions today</>} · <Link to="/ai-search/account">Your plan</Link> · <Link to="/pricing/search">Upgrade</Link></small>
+            : <small>Free account: 5 questions a day. <Link to="/pricing/search">See plans</Link></small>}
       </div>
     </div>
   </div></section>;

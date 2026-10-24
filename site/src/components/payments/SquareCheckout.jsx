@@ -116,8 +116,9 @@ export default function SquareCheckout({ quote, purchase, email, onPaid }) {
   };
 
   return <form className="sq" onSubmit={submitCard} aria-busy={busy}>
-    {quote.mode !== 'card_update' && <div className="sq-total"><span>{quote.mode === 'subscription' ? 'Each month' : 'Total today'}</span><strong>{usd(quote.totalCents)}</strong></div>}
+    {quote.mode !== 'card_update' && <div className="sq-total"><span>{quote.mode === 'subscription' ? 'Due today' : 'Total today'}</span><strong>{usd(quote.totalCents)}</strong></div>}
     <ul className="sq-items">{quote.items.map(i => <li key={i.id + i.name}><span>{i.name}</span><span>{usd(i.cents)}</span></li>)}</ul>
+    {quote.mode === 'subscription' && quote.renewalCents && <p className="sq-fine">Then {usd(quote.renewalCents)} every {quote.periodLabel || 'month'} until you cancel.</p>}
     {wallets.length > 0 && <div ref={walletRef} className="sq-wallets">
       {wallets.map(id => <div key={id} data-wallet={id} className={`sq-wallet sq-${id}`} role="button" tabIndex={0} aria-label={`Pay with ${id.replace('_', ' ')}`} onClick={() => payWallet(id)} onKeyDown={e => e.key === 'Enter' && payWallet(id)} />)}
     </div>}
@@ -126,7 +127,7 @@ export default function SquareCheckout({ quote, purchase, email, onPaid }) {
     <label className="sq-label" htmlFor="sq-card">Card</label>
     <div id="sq-card" ref={cardRef} className="sq-card" />
     <button type="submit" className="engine-button engine-primary sq-pay" disabled={!ready || busy}>
-      <Lock size={15} aria-hidden="true" />{busy ? 'Processing…' : quote.mode === 'card_update' ? 'Save new card' : quote.mode === 'subscription' ? `Start plan · ${usd(quote.totalCents)}/month` : `Pay ${usd(quote.totalCents)}`}
+      <Lock size={15} aria-hidden="true" />{busy ? 'Processing…' : quote.mode === 'card_update' ? 'Save new card' : quote.mode === 'subscription' ? `Start plan · ${usd(quote.totalCents)} today` : `Pay ${usd(quote.totalCents)}`}
     </button>
     {error && <p className="ais-error" role="alert">{error}</p>}
     <p className="sq-fine"><ShieldCheck size={14} aria-hidden="true" />Processed by Square for {BUSINESS.brandName}. Your card details go straight to Square and are never stored by us.{quote.mode === 'subscription' ? ' Cancel any time from your account page.' : ''}</p>

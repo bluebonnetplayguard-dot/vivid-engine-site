@@ -37,9 +37,15 @@ export const NAV_GROUPS = [
       { id: 'portfolio', label: 'Portfolio', to: '/#work', icon: 'portfolio' },
       { id: 'process', label: 'Process', to: '/#process', icon: 'process' },
       { id: 'pricing', label: 'Pricing', to: '/pricing', icon: 'pricing', children: [
-        { label: 'AI Search plans', to: '/ai-search/pricing' },
-        { label: 'Websites & care', to: '/pricing' },
-        { label: 'Video plans', to: '/video/pricing' },
+        { label: 'All pricing', to: '/pricing' },
+        { label: 'AI Search', to: '/pricing/search' },
+        { label: 'Websites', to: '/pricing/websites' },
+        { label: 'App Builder', to: '/pricing/app-builder' },
+        { label: 'Production', to: '/pricing/production' },
+        { label: 'We Build It For You', to: '/pricing/custom-builds' },
+        { label: 'Bundles', to: '/pricing/bundles' },
+        { label: 'Partners', to: '/pricing/partners' },
+        { label: 'Compare', to: '/pricing/compare' },
       ] },
       { id: 'pay', label: 'Pay', to: '/#pay', icon: 'pay' },
       { id: 'help', label: 'Help & About', to: '/support', icon: 'help', children: [
@@ -53,10 +59,10 @@ export const NAV_GROUPS = [
 ];
 
 export const FOOTER_COLUMNS = [
-  { title: 'Search', links: [{ label: 'Vivid AI Search', to: '/ai-search' }, { label: 'Search plans', to: '/ai-search/pricing' }, { label: 'History', to: '/ai-search' }] },
+  { title: 'Search', links: [{ label: 'Vivid AI Search', to: '/ai-search' }, { label: 'Search plans', to: '/pricing/search' }, { label: 'History', to: '/ai-search' }] },
   { title: 'Build', links: [{ label: 'Start a project', to: '/start' }, { label: 'App development', to: '/services/custom-app-development' }, { label: 'Video Studio', to: '/video' }, { label: 'Vivid Estimator', to: '/vivid-estimator' }] },
   { title: 'Services', links: [{ label: 'Website design', to: '/services' }, { label: 'Website maintenance', to: '/maintenance' }, { label: 'Domain leasing', to: '/domain-leasing' }, { label: 'Service areas', to: '/service-areas' }] },
-  { title: 'Pricing', links: [{ label: 'AI Search plans', to: '/ai-search/pricing' }, { label: 'Websites & care', to: '/pricing' }, { label: 'Video plans', to: '/video/pricing' }, { label: 'Pay online', to: '/#pay' }] },
+  { title: 'Pricing', links: [{ label: 'All pricing', to: '/pricing' }, { label: 'AI Search', to: '/pricing/search' }, { label: 'Websites', to: '/pricing/websites' }, { label: 'We Build It For You', to: '/pricing/custom-builds' }, { label: 'Compare plans', to: '/pricing/compare' }, { label: 'Pay online', to: '/#pay' }] },
   { title: 'Help', links: [{ label: 'Help & support', to: '/support' }, { label: 'About us', to: '/about' }, { label: 'FAQ', to: '/faq' }, { label: 'Contact', to: '/contact' }, { label: 'Client login', to: '/login?returnTo=%2Fportal' }] },
   { title: 'Legal', links: [{ label: 'Privacy Policy', to: '/privacy' }, { label: 'Delete account', to: '/delete-account' }] },
 ];

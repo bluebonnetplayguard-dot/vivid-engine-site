@@ -101,7 +101,7 @@ export default function AppShell({ account, activeThreadId, onOpenThread, onNewS
             : <div className="vs-locked">
                 <b><Lock size={14} aria-hidden="true" />Save your conversations with any paid plan</b>
                 <span>{isAuthenticated ? 'Free conversations work while open but aren’t kept after you leave.' : 'Guest searches aren’t kept after you leave.'}</span>
-                <Link className="vs-mini-btn" to="/ai-search/pricing" onClick={closeDrawer}>Upgrade</Link>
+                <Link className="vs-mini-btn" to="/pricing/search" onClick={closeDrawer}>Upgrade</Link>
               </div>)}
         </div>)}
       </nav>
@@ -111,7 +111,7 @@ export default function AppShell({ account, activeThreadId, onOpenThread, onNewS
           <Gift size={17} aria-hidden="true" />
           <div className="vs-label">{canSeeHistory
             ? <><b>Refer a friend</b>Earn bonus credits · <Link to="/ai-search/account" onClick={closeDrawer}>Invite</Link></>
-            : <><b>Search Pro</b>Saved history &amp; more engines · <Link to="/ai-search/pricing" onClick={closeDrawer}>See plans</Link></>}</div>
+            : <><b>Search Pro</b>Saved history &amp; more engines · <Link to="/pricing/search" onClick={closeDrawer}>See plans</Link></>}</div>
         </div>
         <label className="vs-prefs">
           <ShieldCheck size={15} aria-hidden="true" />

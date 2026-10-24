@@ -99,7 +99,7 @@ function Answer({ m, t, account, isLast, onCopy, showUnsaved }) {
     {m.status && <div className="ais-status" role="status"><span className="ais-dot" aria-hidden="true" />{m.status}</div>}
     {SENSITIVE.test(m.question || '') && m.content && <p className="vh-advice"><Info size={16} aria-hidden="true" />This isn’t professional advice. Check with a qualified professional before acting on it.</p>}
     {m.content && <ReactMarkdown components={mdLinks}>{m.content}</ReactMarkdown>}
-    {m.error && <div className="ais-error" role="alert">{m.error.message}{UPGRADE_CODES.has(m.error.code) && <> <Link to="/ai-search/pricing">See plans</Link></>}</div>}
+    {m.error && <div className="ais-error" role="alert">{m.error.message}{UPGRADE_CODES.has(m.error.code) && <> <Link to="/pricing/search">See plans</Link></>}</div>}
     <Sources sources={m.sources} />
     {done && m.content && <>
       <p className="vh-why"><Sparkles size={14} aria-hidden="true" /><span><b>Why this engine?</b> {whyThisEngine(m)}</span></p>
@@ -108,14 +108,14 @@ function Answer({ m, t, account, isLast, onCopy, showUnsaved }) {
         <button type="button" onClick={share}><Share2 size={15} aria-hidden="true" />Share</button>
         {paid && !t.privateMode && t.threadId
           ? <Link to={`/ai-search?thread=${encodeURIComponent(t.threadId)}`}><Bookmark size={15} aria-hidden="true" />Saved</Link>
-          : <Link to="/ai-search/pricing" title="Saved history comes with paid plans"><Bookmark size={15} aria-hidden="true" />Save</Link>}
+          : <Link to="/pricing/search" title="Saved history comes with paid plans"><Bookmark size={15} aria-hidden="true" />Save</Link>}
         <button type="button" onClick={() => document.getElementById('vh-follow')?.focus()}><CornerDownRight size={15} aria-hidden="true" />Follow-up</button>
         <Link className="is-quiet" to={`/start?brief=${encodeURIComponent((m.question || '').slice(0, 300))}`}><Code size={15} aria-hidden="true" />Build from this</Link>
         <Link className="is-quiet" to="/video"><Clapperboard size={15} aria-hidden="true" />Make a video</Link>
         <a className="is-wa" href={whatsappUrl(`Hi Vivid Engine, I have a question about this answer: "${(m.question || '').slice(0, 200)}"`)} target="_blank" rel="noopener noreferrer">WhatsApp us</a>
         <button type="button" className="vh-report" onClick={report}><Flag size={14} aria-hidden="true" />Report</button>
       </div>
-      {showUnsaved && <p className="vh-unsaved"><Lock size={14} aria-hidden="true" />This conversation won’t be saved. <Link to="/ai-search/pricing">Upgrade to keep your history</Link></p>}
+      {showUnsaved && <p className="vh-unsaved"><Lock size={14} aria-hidden="true" />This conversation won’t be saved. <Link to="/pricing/search">Upgrade to keep your history</Link></p>}
     </>}
   </div>;
 }
@@ -164,8 +164,8 @@ export default function HomeSearch({ t, account }) {
       {isAuthenticated && me?.tier ? <>
         <span className="ais-badge">{me.tier.name}</span>
         {me.usage && <span>{me.usage.today} of {me.usage.dailyLimit} today</span>}
-        {access.allowed ? <span>History on</span> : <Link to="/ai-search/pricing">Save your history with a paid plan</Link>}
-      </> : <span>Free account: 5 questions a day. <Link to="/ai-search/pricing">See plans</Link></span>}
+        {access.allowed ? <span>History on</span> : <Link to="/pricing/search">Save your history with a paid plan</Link>}
+      </> : <span>Free account: 5 questions a day. <Link to="/pricing/search">See plans</Link></span>}
     </p>
   </section>;
 

@@ -124,9 +124,9 @@ export default function AiSearch() {
         {me && !canSeeHistory && <div className="ais-locked">
           <b><Lock size={14} aria-hidden="true" />Save your conversations with any paid plan</b>
           <span>Free conversations work while open but aren’t kept after you leave.</span>
-          <Link to="/ai-search/pricing">Upgrade</Link>
+          <Link to="/pricing/search">Upgrade</Link>
         </div>}
-        {access.readOnly && <p className="ais-ro">Your plan ended. This history is read-only for 30 days. <Link to="/ai-search/pricing">Upgrade to restore it</Link>.</p>}
+        {access.readOnly && <p className="ais-ro">Your plan ended. This history is read-only for 30 days. <Link to="/pricing/search">Upgrade to restore it</Link>.</p>}
         {access.allowed && <p className="ais-ro">Saved {retentionLabel(access.retentionDays)}.</p>}
         {threads.length > 0 && <h2>Recent</h2>}
         {threads.map(t => <div key={t.id} className={`ais-thread${t.id === threadId ? ' is-active' : ''}`}>
@@ -147,7 +147,7 @@ export default function AiSearch() {
                 {usage && <span>{usage.today} of {usage.dailyLimit} today · {usage.month} of {usage.monthlyLimit} this month</span>}
                 <Link to="/ai-search/account">Your plan</Link>
               </> : authChecked && <span>Free account: 5 questions a day. <Link to="/login?returnTo=%2Fai-search">Sign in</Link> or <Link to="/register">create an account</Link>.</span>}
-              <Link to="/ai-search/pricing">Plans &amp; pricing</Link>
+              <Link to="/pricing/search">Plans &amp; pricing</Link>
             </div>
           </section>}
           {messages.map((m, i) => <div key={i} className="ais-msg">
@@ -155,7 +155,7 @@ export default function AiSearch() {
               <Engines engines={m.engines} />
               {m.status && <div className="ais-status" role="status"><span className="ais-dot" aria-hidden="true" />{m.status}</div>}
               {m.content && <ReactMarkdown components={mdLinks}>{m.content}</ReactMarkdown>}
-              {m.error && <div className="ais-error" role="alert">{m.error.message}{UPGRADE_CODES.has(m.error.code) && <> <Link to="/ai-search/pricing">See plans</Link></>}</div>}
+              {m.error && <div className="ais-error" role="alert">{m.error.message}{UPGRADE_CODES.has(m.error.code) && <> <Link to="/pricing/search">See plans</Link></>}</div>}
               <Sources sources={m.sources} />
             </div>}
           </div>)}
