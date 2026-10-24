@@ -22,7 +22,7 @@ jobs:
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
           ./gitleaks git --redact --no-banner --config .gitleaks.toml 2>&1 | tee gitleaks.log; rc=${PIPESTATUS[0]}
           # Findings are redacted (file, line and rule only); repeat them as annotations so they show on the pull request.
-          grep -E "^(File|Line|RuleID|Commit):" gitleaks.log | head -30 | while read -r l; do echo "::error::gitleaks $l"; done
+          sed -r 's/\x1b\[[0-9;]*m//g' gitleaks.log | grep -E "RuleID|File|Line|Commit|leaks found|WRN|ERR|error" | head -40 | while read -r l; do echo "::error::gitleaks $l"; done
           exit $rc
 
   site:

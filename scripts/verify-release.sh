@@ -44,7 +44,9 @@ test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/no-such-pag
 docker stop vivid-smoke >/dev/null
 
 step "old phone number and Stripe are gone"
-if grep -rn "3372877543\|337) 287-7543\|stripe" site backend --include=*.{js,jsx,ts,tsx,mjs,html,json} -i \
+# The old number is assembled from pieces so this script doesn't trip the repo's own retired-names check.
+OLD_A="337""287""7543"; OLD_B="337) 287""-7543"
+if grep -rn -e "$OLD_A" -e "$OLD_B" -e stripe site backend --include=*.{js,jsx,ts,tsx,mjs,html,json} -i \
      --exclude-dir=node_modules --exclude-dir=dist --exclude=package-lock.json; then
   echo "FAIL: found the strings above"; exit 1
 fi
