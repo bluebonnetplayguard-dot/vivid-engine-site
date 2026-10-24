@@ -9,24 +9,103 @@ Neither requires GitHub.
 |---|---|---|
 | Server | Ubuntu 24.04, **2 vCPU / 4 GB RAM** (your 2 vCPU / 80 GB plan is fine) | `apps-s-1vcpu-1gb` service, 1 instance |
 | Database | PostgreSQL 16 in Docker, data on a named volume | Managed PostgreSQL 16 (smallest plan) |
-| Runtime | Docker + Compose (installed by the setup script). Node 20 runs inside the container | Container image in DigitalOcean Container Registry |
+| Runtime | Docker + Compose (installed by the setup script). Node 22 runs inside the container | Container image in DigitalOcean Container Registry |
 | Rough cost | Droplet you already have + about 20% for weekly Droplet backups + Spaces ($5/mo) for off-site backups | App (~$12/mo) + Managed DB (~$15/mo) + registry |
 
-For local development on your PC: Node.js 20+ (`site/` and `backend/` each have `npm install`), and PostgreSQL. See `backend/README.md`.
+For local development on your PC: Node.js 22+ (`site/` and `backend/` each have `npm install`), and PostgreSQL. See `backend/README.md`.
 
 ## Accounts and keys you need
 
 | Service | Needed for | Where it goes |
 |---|---|---|
 | SMTP provider (Postmark, Resend, Amazon SES, or Google Workspace SMTP) | **Sign-up codes, password resets**, lead and deletion emails | `SMTP_*` |
-| Square | POS / invoice checkout | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
-| Anthropic (console.anthropic.com) | Website chat, estimator, outreach, marketing drafts, logos | `ANTHROPIC_API_KEY` |
+| Square | All payments: checkout, subscriptions, invoices, POS, Afterpay | `SQUARE_APPLICATION_ID`, `SQUARE_LOCATION_ID`, `SQUARE_ACCESS_TOKEN`, `SQUARE_WEBHOOK_SIGNATURE_KEY`, `SQUARE_ENVIRONMENT` |
+| Anthropic (console.anthropic.com) | AI Search (Claude), website chat, estimator, outreach, marketing drafts, logos | `ANTHROPIC_API_KEY` (+ `ANTHROPIC_ADMIN_KEY` for the Billing Monitor) |
+| Perplexity | AI Search default engine (web search with citations) | `PERPLEXITY_API_KEY` |
+| Google AI (Gemini) | AI Search images, video and multimodal questions | `GEMINI_API_KEY` |
+| DigitalOcean API token (read-only billing) | Billing Monitor balance and invoices | `DO_BILLING_TOKEN` |
 | Google Cloud OAuth client | "Continue with Google" | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | Twilio (optional) | Text alerts to you for new leads | `TWILIO_*`, `OWNER_PHONE` |
 | Tavily / Exa / Perplexity (optional) | Market Pricing research ([PRICING.md](PRICING.md)) | `TAVILY_API_KEY`, `EXA_API_KEY`, `PERPLEXITY_API_KEY` |
 | DigitalOcean Spaces (optional, recommended) | Off-site database backups | `SPACES_*` |
 
 Without SMTP, nobody can finish signing up (the code can't be delivered). Set it up before launch.
+
+---
+
+## Release v2 (`release/v2-final`): server commands
+
+Run these in the DigitalOcean console (Droplet 162.243.169.89) **after the pull request is merged into `main`**.
+They replace only the app container; Postgres, nginx and certbot keep running, and `/opt/vivid/infra/.env` is never
+touched. Keys stay in that file only: don't paste them into the console history, chat or a commit.
+
+**Database migrations run automatically when the new app container starts.** This release adds
+`005_square_payments`, `006_saved_history`, `007_ai_router` and `008_billing_monitor` (all additive: new tables,
+views and columns, nothing dropped), so step 1 takes a database dump first.
+
+```bash
+# 1) Back up the database, the current code, and tag the running image for rollback
+cd /opt/vivid/infra
+bash scripts/backup.sh                       # dump to /opt/vivid/backups/vivid-<time>.sql.gz (+ Spaces if set)
+cd /opt/vivid
+mkdir -p /opt/vivid/backups
+tar -czf /opt/vivid/backups/pre-v2-$(date +%F-%H%M).tar.gz --exclude=backups --exclude='*/node_modules' --exclude='*/dist' .
+docker image tag "$(docker inspect vivid-app-1 --format '{{.Image}}')" vivid-app:rollback-before-v2
+
+# 2) Pull the release (or upload the files with FileZilla to /opt/vivid, keeping infra/.env as it is)
+git pull origin main
+#    First time only, if /opt/vivid is not a git checkout yet ("fatal: not a git repository"):
+#      git init && git remote add origin https://github.com/bluebonnetplayguard-dot/vivid-engine-site.git
+#      git fetch origin main && git checkout -f -B main origin/main
+#    infra/.env is ignored by git, so it is kept.
+
+# 3) Build and replace only the app container (Postgres, nginx, and certbot keep running)
+cd /opt/vivid/infra
+docker compose config --quiet
+docker compose build app
+docker compose up -d --no-deps app
+docker compose restart web    # only if the nginx template changed (it did in this release)
+
+# 4) Check it
+docker compose ps
+curl -fsS https://vividenginesolutions.com/api/health
+curl -fsS https://vividenginesolutions.com/areas/katy | grep -io "<h1[^>]*>[^<]*"
+curl -sI https://vividenginesolutions.com/ai-search | grep -i "^location"     # expect /search (301)
+curl -sI https://vividenginesolutions.com/ | grep -ci "strict-transport-security"   # expect 1
+docker compose logs --tail=80 app        # look for "Applied migration 00x_..." and "Listening on 0.0.0.0:8080"
+```
+
+Rollback if needed (the app goes back to the previous image; migrations are additive, so the old code keeps working
+on the upgraded database):
+
+```bash
+cd /opt/vivid/infra
+docker image tag vivid-app:rollback-before-v2 vivid-app:latest
+docker compose up -d --no-deps --no-build --force-recreate app
+```
+
+Only if the database itself must go back: `bash scripts/restore.sh /opt/vivid/backups/vivid-YYYYMMDD-HHMMSS.sql.gz`
+(this replaces everything written since the dump).
+
+### After the first v2 deploy
+
+1. **New settings in `/opt/vivid/infra/.env`** (names are in `infra/.env.example`; leave a line empty to keep that
+   feature off): `PERPLEXITY_API_KEY`, `GEMINI_API_KEY`, `HISTORY_ENCRYPTION_KEY` (`openssl rand -base64 32`),
+   `GUEST_QUESTIONS_PER_DAY`, and the Billing Monitor values. Then `docker compose up -d --no-deps app`.
+   `OPENAI_API_KEY` is only used by Video Studio captions now; AI Search no longer needs it.
+2. **Billing Monitor setup** (provider tokens, budgets, the Google Cloud budget alert): Part 1 of
+   [BILLING_MONITOR.md](BILLING_MONITOR.md). Check `/admin/billing` afterwards.
+3. **Square** stays on `SQUARE_ENVIRONMENT=sandbox` until you switch it. The webhook URL is
+   `https://vividenginesolutions.com/api/webhooks/square`.
+4. **Secret scanning on your PC** (once per clone): `git config core.hooksPath scripts/git-hooks`, with
+   [gitleaks](https://github.com/gitleaks/gitleaks) installed. CI runs the same scan on every pull request.
+
+### Release checks before merging
+
+`bash scripts/verify-release.sh` (any machine with Node 22 and Docker) runs every check from the release brief:
+site lint/build/prerender, retired names, backend build and tests against a throwaway Postgres, the Docker build,
+a smoke test of the container (health, `/areas/katy` H1, sitemap, a 301 and a 404), and the old-number/Stripe grep.
+GitHub Actions runs it on every pull request (`.github/workflows/ci.yml`).
 
 ---
 
