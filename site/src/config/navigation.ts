@@ -201,11 +201,11 @@ export function sitemapPaths(): string[] {
 export function noindexPatterns(): string[] {
   const pats = allRoutes().filter(n => (n.access ?? 'public') !== 'public' || n.index === false)
     .map(n => `^${n.path.replace(/:[^/]+/g, '[^/]+')}$`);
-  return [...new Set([...pats, '^/admin(/.*)?$', '^/portal(/.*)?$', '^/checkout(/.*)?$', '^/search(/.*)?$', '^/ai-search(/.*)?$'])];
+  return [...new Set([...pats, '^/admin(/.*)?$', '^/portal(/.*)?$', '^/checkout(/.*)?$', '^/search(/.*)?$', '^/ai-search(/.*)?$', '^/studio(/.*)?$'])];
 }
 
 export function robotsTxt(origin: string): string {
-  const disallow = ['/admin', '/portal', '/account', '/settings', '/checkout', '/search', '/ai-search', '/recents', '/favorites', '/projects', '/partners/dashboard', '/build/my-projects', '/create/my-media', '/video/edit', '/video/account', '/start', '/login', '/register', '/forgot-password', '/reset-password', '/api/'];
+  const disallow = ['/admin', '/portal', '/account', '/settings', '/checkout', '/search', '/ai-search', '/recents', '/favorites', '/projects', '/partners/dashboard', '/build/my-projects', '/create/my-media', '/video/edit', '/video/account', '/studio', '/start', '/login', '/register', '/forgot-password', '/reset-password', '/api/'];
   return ['User-agent: *', ...disallow.map(d => `Disallow: ${d}`), 'Allow: /', '', `Sitemap: ${origin}/sitemap.xml`, ''].join('\n');
 }
 

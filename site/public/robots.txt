@@ -14,6 +14,7 @@ Disallow: /build/my-projects
 Disallow: /create/my-media
 Disallow: /video/edit
 Disallow: /video/account
+Disallow: /studio
 Disallow: /start
 Disallow: /login
 Disallow: /register
