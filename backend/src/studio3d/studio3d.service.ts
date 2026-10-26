@@ -3,8 +3,8 @@ import { AuthUser } from '../auth/guard';
 import { config } from '../config';
 import { Db } from '../db';
 import { ApiError, badRequest, notFound } from '../errors';
-import { BillingMonitorService } from '../billing-monitor/billing-monitor.service';
-import { Studio3dAi } from './studio3d-ai';
+import { InterpreterService } from '../ai-commands/interpreter.service';
+import { toStudioCommand } from '../ai-commands/command-schema';
 import { BuildingModel, ModelParseError, buildingModelJsonSchema, errorsOnly, validateBuilding } from '../building-model';
 import { GeometryReader } from '../geometry-reader';
 
@@ -31,10 +31,9 @@ function cleanData(data: any) {
 
 @Injectable()
 export class Studio3dService {
-  readonly ai: Studio3dAi;
-  constructor(private readonly db: Db, private readonly billing: BillingMonitorService) { this.ai = new Studio3dAi(billing); }
+  constructor(private readonly db: Db, private readonly interpreter: InterpreterService) {}
 
-  status() { return { enabled: studioEnabled(), ai: studioEnabled() && this.ai.configured() }; }
+  status() { return { enabled: studioEnabled(), ai: studioEnabled() && this.interpreter.available() }; }
 
   schema() { this.on(); return buildingModelJsonSchema(); }
 
@@ -188,21 +187,31 @@ export class Studio3dService {
     return row;
   }
 
+  // The studio's assistant endpoint, kept for the 3D Studio UI. It runs the unified interpreter
+  // (/api/ai/assistant) and returns the studio's flat command format. Commands the studio can't run itself
+  // (estimates, proposals, project loads) are reported, not dropped silently.
+  private static readonly STUDIO_RUNNABLE = new Set(['SELECT_OBJECT', 'UPDATE_MATERIAL', 'UPDATE_COLOR', 'MOVE_OBJECT', 'RESIZE_OBJECT', 'ADD_COMPONENT', 'REMOVE_COMPONENT',
+    'CHANGE_CAMERA', 'SET_VIEW', 'TOGGLE_LAYER', 'SET_LIGHTING', 'GENERATE_RENDER', 'CREATE_DESIGN_VARIATION', 'SAVE_DESIGN']);
   async interpret(user: AuthUser, body: any) {
     this.on();
-    if (!this.ai.configured()) throw new ApiError(503, 'The AI interpreter needs ANTHROPIC_API_KEY on the server.', { code: 'NOT_CONFIGURED' });
-    const message = text(body?.message, 1000);
+    const message = typeof body?.message === 'string' ? body.message.trim() : '';
     if (!message) throw badRequest('Say what you’d like to change or see.');
-    const used = await this.db.one<{ n: number }>(`SELECT count(*)::int AS n FROM studio_ai_usage WHERE user_id = $1 AND at > now() - interval '1 day'`, [user.id]);
-    if ((used?.n ?? 0) >= config.STUDIO3D_AI_PER_DAY) throw new ApiError(429, 'You’ve reached today’s limit for AI design requests. Buttons and simple requests still work.', { code: 'QUOTA_DAY' });
-    const guard = await this.billing.guard.check({ userId: user.id, workflow: 'studio3d', providers: ['claude'] });
-    if (guard.blocked || guard.pausedProviders.includes('claude')) throw new ApiError(503, 'AI design requests are paused for now because a spending limit was reached. Buttons and simple requests still work.', { code: 'BUDGET' });
-    const history = (Array.isArray(body?.history) ? body.history : []).filter((h: unknown) => typeof h === 'string').slice(-4).map((h: string) => h.slice(0, 300));
-    await this.db.query('INSERT INTO studio_ai_usage(user_id) VALUES ($1)', [user.id]);
-    try {
-      return await this.ai.interpret({ message, context: body?.context ?? {}, history, userId: user.id });
-    } catch (e: any) {
-      throw new ApiError(502, 'The AI interpreter didn’t answer. Try again, or use the buttons.', { code: 'AI_ERROR', detail: e?.status ?? undefined });
-    }
+    const ctx = body?.context ?? {};
+    const r = await this.interpreter.assistant(user, {
+      message, model: body?.model, projectId: body?.projectId, designId: body?.designId,
+      selection: typeof ctx?.selection?.id === 'string' ? ctx.selection.id : body?.selection ?? null,
+      history: Array.isArray(body?.history) ? body.history : [],
+    });
+    const runnable = r.commands.filter(c => Studio3dService.STUDIO_RUNNABLE.has(c.command.type));
+    const elsewhere = r.commands.filter(c => !Studio3dService.STUDIO_RUNNABLE.has(c.command.type));
+    return {
+      reply: r.clarification && !runnable.length ? r.clarification : r.reply,
+      commands: runnable.map(c => toStudioCommand(c.command)),
+      confirm: runnable.map(c => ({ type: c.command.type, needsConfirmation: c.needsConfirmation, reason: c.confirmReason ?? null, warnings: c.warnings })),
+      dropped: [...r.rejected.map(x => x.reason), ...elsewhere.map(c => `${c.command.type} runs from the project tools, not the 3D view.`)],
+      engine: r.engine === 'cache' ? 'Claude (cached)' : 'Claude',
+      logId: r.logId,
+    };
   }
+
 }

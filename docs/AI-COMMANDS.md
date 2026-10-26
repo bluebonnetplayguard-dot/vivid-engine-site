@@ -51,3 +51,50 @@ materials come from the shared material list.
 The studio's flat format `{ type, ...fields }` converts with `fromStudioCommand` / `toStudioCommand`; every
 quick-parser output and style preset round-trips (tested). `aiCommandJsonSchema()` produces the JSON Schema for
 the Claude tool (supported commands only).
+
+## Interpreter (`POST /api/ai/assistant`)
+
+```
+message ──► compact context ──► Claude (gc_commands tool) ──► shape check ──► dimension guard ──► building check ──► plan
+            ids, names, faces,     or the cache (same model,     schema +        sizes not said →     targets, surfaces,     instant / preview /
+            finishes, designs      selection and message)        registry        meta.inferred        opening fit           rejected (with reasons)
+```
+
+Request: `{ message, projectId?, designId?, model?, selection?, history? }`. `model` is the building on screen (unsaved
+edits included); without it the saved design is loaded. Response:
+
+```json
+{ "logId": "…", "reply": "Proposed moving the window 2 ft left.", "clarification": null, "engine": "claude",
+  "commands": [ { "command": { "type": "MOVE_OBJECT", "payload": { "target": { "kind": "selected" }, "along": -24 }, "meta": { "inferred": [] } },
+                  "risk": "geometry", "needsConfirmation": true, "confirmReason": "Geometry changes are previewed before they are applied.",
+                  "warnings": [], "targets": ["o-f1-front-2"] } ],
+  "rejected": [ { "type": "CHECK_COMPLIANCE", "reason": "Code checks aren’t available yet…" } ] }
+```
+
+- **Claude** sees only a compact context (ids, names, faces, finishes, rooms, designs; no coordinates) inside
+  `<context>` marked as data, and must answer through the `gc_commands` tool whose items are the command JSON Schema.
+  Calls are logged to the Billing Monitor (`workflow = ai_assistant`), respect its budgets, and count against
+  `STUDIO3D_AI_PER_DAY`. The system prompt is in `ai-commands/prompt.ts`.
+- **Dimension guard** (`dimension-guard.ts`): reads the lengths the contractor actually said ("two feet", `3' 6"`,
+  "16x12") and adds any geometry size that doesn't match one of them to `meta.inferred`, so the preview says the
+  assistant chose it.
+- **Cache**: identical message + model state + selection + designs → the stored answer, re-validated (500 entries,
+  10 minutes). Follow-ups with history are never cached.
+- **No key**: `503 NOT_CONFIGURED`; the 3D Studio's on-device parser keeps common requests working.
+
+## Command log, undo/redo and audit trail
+
+Every request is stored in `ai_command_log` (migration `013`): message, engine, reply, planned and rejected commands,
+status and a status history.
+
+| Endpoint | |
+|---|---|
+| `POST /api/ai/commands/:id/status` | `{ status, version?, note? }`: proposed → executed / partially-executed / rejected; executed → undone → redone → undone… (other transitions: `409`) |
+| `GET /api/ai/commands?projectId=&limit=` | audit trail |
+| `GET /api/ai/commands/catalog` | every command with family, risk, availability and reason |
+
+Rollback of the model itself uses design versions (`RESTORE_DESIGN`, always confirmed); undo/redo inside a session is
+the studio's history, reported back through the status hooks.
+
+The 3D Studio's `/api/studio3d/interpret` now runs this interpreter and converts to the studio's flat format; the old
+studio-only AI call was removed (one AI integration, not two).
