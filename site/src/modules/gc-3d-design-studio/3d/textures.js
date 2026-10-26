@@ -99,15 +99,72 @@ function base(pattern) {
   return tex;
 }
 
-const scaled = new Map();
-export function finishTexture(pattern, scaleInches) {
-  const key = `${pattern}@${scaleInches}`;
-  if (scaled.has(key)) return scaled.get(key);
+// Relief maps for PBR shading, derived from the same painting: the grayscale is read as height, so mortar joints,
+// lap shadow lines and standing seams become real normal-map grooves, and recessed areas are a little rougher.
+// Built once per pattern; tiny patterns (flat) get none, since a flat normal map only costs a texture fetch.
+const RELIEF = { flat: 0, noise: 0.6, lap: 2.2, batten: 2.4, brick: 2.6, stone: 3, ribs: 2.4, seam: 2.8, shingle: 2.2, tile: 2, wood: 0.8, planks: 1.4, grid: 1.6 };
+const reliefCache = new Map();
+
+export function heightToNormal(gray, size, strength) {
+  // Sobel on a wrapping height field -> tangent-space normal, packed to RGB.
+  const out = new Uint8ClampedArray(size * size * 4);
+  const at = (x, y) => gray[((y + size) % size) * size + ((x + size) % size)];
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const dx = (at(x + 1, y - 1) + 2 * at(x + 1, y) + at(x + 1, y + 1)) - (at(x - 1, y - 1) + 2 * at(x - 1, y) + at(x - 1, y + 1));
+    const dy = (at(x - 1, y + 1) + 2 * at(x, y + 1) + at(x + 1, y + 1)) - (at(x - 1, y - 1) + 2 * at(x, y - 1) + at(x + 1, y - 1));
+    let nx = -dx * strength, ny = dy * strength, nz = 1;          // canvas y runs down; texture v runs up
+    const l = Math.hypot(nx, ny, nz); nx /= l; ny /= l; nz /= l;
+    const i = (y * size + x) * 4;
+    out[i] = (nx * 0.5 + 0.5) * 255; out[i + 1] = (ny * 0.5 + 0.5) * 255; out[i + 2] = (nz * 0.5 + 0.5) * 255; out[i + 3] = 255;
+  }
+  return out;
+}
+
+function relief(pattern) {
+  if (reliefCache.has(pattern)) return reliefCache.get(pattern);
+  const strength = RELIEF[pattern] ?? 0;
+  let maps = null;
   const b = base(pattern);
-  if (!b) return null;
-  const t = b.clone();
+  if (b && strength > 0) {
+    const src = b.image.getContext('2d').getImageData(0, 0, SIZE, SIZE).data;
+    const gray = new Float32Array(SIZE * SIZE);
+    for (let i = 0; i < gray.length; i++) gray[i] = src[i * 4] / 255;
+    const mk = (data) => { const c = document.createElement('canvas'); c.width = c.height = SIZE; c.getContext('2d').putImageData(new ImageData(data, SIZE, SIZE), 0, 0); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; return t; };
+    const normal = mk(heightToNormal(gray, SIZE, strength));
+    // Roughness: 1 in the grooves, the material's own roughness on the faces (the map multiplies material.roughness).
+    const rough = new Uint8ClampedArray(SIZE * SIZE * 4);
+    for (let i = 0; i < gray.length; i++) { const v = (0.78 + 0.22 * (1 - gray[i])) * 255; rough[i * 4] = rough[i * 4 + 1] = rough[i * 4 + 2] = v; rough[i * 4 + 3] = 255; }
+    maps = { normal, roughness: mk(rough) };
+  }
+  reliefCache.set(pattern, maps);
+  return maps;
+}
+
+const scaled = new Map();
+function scaledClone(tex, key, scaleInches) {
+  if (scaled.has(key)) return scaled.get(key);
+  const t = tex.clone();
   t.needsUpdate = true;
   t.repeat.set(1 / scaleInches, 1 / scaleInches);
   scaled.set(key, t);
   return t;
 }
+
+export function finishTexture(pattern, scaleInches) {
+  const b = base(pattern);
+  return b ? scaledClone(b, `${pattern}@${scaleInches}`, scaleInches) : null;
+}
+
+// Color, normal and roughness maps for one finish at real-world tile size. relief: false skips the extra maps
+// (low-quality mode on weak devices).
+export function finishMaps(pattern, scaleInches, { relief: withRelief = true } = {}) {
+  const map = finishTexture(pattern, scaleInches);
+  const r = withRelief ? relief(pattern) : null;
+  return {
+    map,
+    normalMap: r ? scaledClone(r.normal, `${pattern}@${scaleInches}#n`, scaleInches) : null,
+    roughnessMap: r ? scaledClone(r.roughness, `${pattern}@${scaleInches}#r`, scaleInches) : null,
+  };
+}
+
+export const PATTERNS = Object.keys(PAINTERS);

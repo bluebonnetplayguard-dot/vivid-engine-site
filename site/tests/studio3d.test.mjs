@@ -148,3 +148,59 @@ test('server vocabulary lists the same materials as the studio', async () => {
   const server = [...block.matchAll(/'([a-z0-9-]+)'/g)].map(m => m[1]).sort();
   assert.deepEqual(server, Object.keys(MATERIALS).sort());
 });
+
+// ---------- 3D engine (pure parts) ----------
+const { collideWalk, walkLevels, wallsOnLevel, BODY_RADIUS } = await import('../src/modules/gc-3d-design-studio/3d/walkCollision.js');
+const { heightToNormal } = await import('../src/modules/gc-3d-design-studio/3d/textures.js');
+const { QUALITY } = await import('../src/modules/gc-3d-design-studio/3d/materialFactory.js');
+const { SKIES, sunDirection } = await import('../src/modules/gc-3d-design-studio/3d/environment.js');
+const { CAMERA_PRESETS } = await import('../src/modules/gc-3d-design-studio/core/commands.js');
+
+test('walkthrough: walls block, doors let you through, you can always back out', () => {
+  const m = sampleHouse();
+  // Through the front door (centered at x = 180 on the front wall, y = 0).
+  const through = collideWalk(m, 1, [180, -30], [180, -2]);
+  assert.equal(through.blocked, false);
+  assert.deepEqual(collideWalk(m, 1, [180, -2], [180, 20]).pos, [180, 20]);
+  // Into the solid front wall at x = 60: stopped before the wall face.
+  const wall = collideWalk(m, 1, [60, -30], [60, -2]);
+  assert.equal(wall.blocked, true);
+  assert.deepEqual(wall.pos, [60, -30]);
+  // Diagonal into the wall slides along it.
+  const slide = collideWalk(m, 1, [60, -20], [70, -2]);
+  assert.equal(slide.blocked, true);
+  assert.deepEqual(slide.pos, [70, -20]);
+  // Standing too close (e.g. after a floor change) never traps you: stepping away is allowed.
+  assert.equal(collideWalk(m, 1, [60, -5], [60, -20]).blocked, false);
+  // Too narrow for the body near a jamb: blocked.
+  assert.equal(collideWalk(m, 1, [166, -30], [166, -2]).blocked, true);
+  assert.ok(BODY_RADIUS > 0);
+});
+
+test('walkthrough: levels and per-floor walls', () => {
+  const m = sampleHouse();
+  assert.deepEqual(walkLevels(m).map(l => [l.level, l.elevation]), [[1, 0], [2, 120]]);
+  assert.ok(wallsOnLevel(m, 1).every(w => w.floor === 'f1'));
+  assert.ok(wallsOnLevel(m, 2).every(w => w.floor === 'f2'));
+});
+
+test('relief maps: flat height gives a flat normal; a ramp tilts it the right way', () => {
+  const N = 8;
+  const flat = heightToNormal(new Float32Array(N * N).fill(0.5), N, 2);
+  assert.deepEqual([...flat.slice(0, 4)].map(Math.round), [128, 128, 255, 255]);
+  const ramp = new Float32Array(N * N); for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) ramp[y * N + x] = x / N;
+  const n = heightToNormal(ramp, N, 2), i = (3 * N + 3) * 4;
+  assert.ok(n[i] < 128, 'height rising to +x tilts the normal toward −x');
+  assert.ok(Math.abs(n[i + 1] - 128) <= 1);
+});
+
+test('quality presets, sky presets and camera presets', () => {
+  for (const q of ['high', 'balanced', 'low']) for (const k of ['relief', 'physical', 'shadowMap', 'pixelRatio', 'shadows']) assert.ok(k in QUALITY[q], `${q}.${k}`);
+  assert.ok(QUALITY.high.shadowMap > QUALITY.low.shadowMap);
+  for (const p of ['day', 'sunset', 'evening']) { const d = sunDirection(p); assert.ok(Math.abs(d.length() - 1) < 1e-9); assert.ok(SKIES[p].exposure > 0); }
+  assert.ok(sunDirection('day').z > 0.5, 'midday sun is high');
+  assert.ok(sunDirection('evening').z < 0, 'evening sun is below the horizon');
+  assert.ok(sunDirection('day').y < 0, 'daytime sun lights the front (−y) of the house');
+  assert.ok(CAMERA_PRESETS.includes('aerial'));
+  assert.equal(quickParse('show me an aerial view', sampleHouse()).commands.find(c => c.type === 'CHANGE_CAMERA')?.preset, 'aerial');
+});

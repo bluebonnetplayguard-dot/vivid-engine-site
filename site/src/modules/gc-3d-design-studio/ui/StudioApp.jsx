@@ -4,6 +4,10 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { Box, Camera, Check, ChevronLeft, ChevronRight, Download, Eye, Footprints, Home, Layers3, Map, Palette, PanelLeft, PanelRight, Redo2, Ruler, Save, Sparkles, SquareDashed, Sun, Undo2, X } from 'lucide-react';
 import { api } from '@/api/client';
 import { Viewport } from '../3d/Viewport.js';
+
+// Render quality is a per-device choice, so it's kept in this browser (not in the design).
+const QUALITY_KEY = 'gcs.quality';
+const savedQuality = () => { try { const q = localStorage.getItem(QUALITY_KEY); return ['auto', 'high', 'balanced', 'low'].includes(q) ? q : 'auto'; } catch { return 'auto'; } };
 import { sampleHouse } from '../core/sampleHouse.js';
 import { applyAll } from '../core/commands.js';
 import { findElement } from '../core/model.js';
@@ -71,6 +75,7 @@ export default function StudioApp({ initialStatus }) {
       v = new Viewport(node, {
         onSelect: id => { dispatch({ type: 'SELECT', id }); if (id && window.matchMedia('(max-width: 900px)').matches) setSheet('edit'); },
         onMeasure: r => setMeasureOut(r),
+        quality: savedQuality(),
       });
     } catch { setViewError('3D could not start on this device (WebGL is unavailable or turned off).'); return; }
     vp.current = v; window.__gcStudio = { viewport: v, getState };   // handy for support and automated tests
@@ -249,7 +254,18 @@ export default function StudioApp({ initialStatus }) {
   const tool = (cmds) => () => runUi(cmds);
   const toggleMeasure = () => { const on = !v.measuring; vp.current?.setMeasuring(on); setMeasureOut(null); dispatch({ type: 'VIEW', patch: { measuring: on } }); if (on) flash('Measure: tap two points on the model.'); };
   const toggleDims = () => runUi([{ type: 'TOGGLE_LAYER', layer: 'dimensions', visible: !v.layers.dimensions }]);
-  const exportImage = () => { const url = vp.current?.capture({ title: state.model.name }); if (!url) return; const a = document.createElement('a'); a.href = url; a.download = 'gc-3d-view.jpg'; a.click(); };
+  // Export: a 2400 × 1500 PNG, supersampled with full shadows (sharper than the on-screen view).
+  const exportImage = () => {
+    let url;
+    try { url = vp.current?.capture({ title: state.model.name, width: 2400, height: 1500, format: 'png' }); }
+    catch { flash('The image couldn’t be made on this device. Try a lower quality setting.'); return; }
+    if (!url) return;
+    const a = document.createElement('a'); a.href = url; a.download = `${(state.model.name || 'gc-3d-view').replace(/[^\w-]+/g, '-').toLowerCase()}.png`; a.click();
+  };
+  const [quality, setQuality] = useState(savedQuality);
+  const changeQuality = q => { setQuality(q); vp.current?.setQuality(q); try { localStorage.setItem(QUALITY_KEY, q); } catch { /* private mode */ } };
+  const walkFloor = d => { const r = vp.current?.walkFloor(d); if (r?.error) flash(r.error); };
+  const floors = (state.proposal?.model || state.model).floors.length;
   const sel = state.selection && findElement(state.proposal?.model || state.model, state.selection);
 
   const toolbar = <nav className="gcs-toolbar" aria-label="Design controls">
@@ -261,9 +277,10 @@ export default function StudioApp({ initialStatus }) {
     <button type="button" className={v.mode === 'dollhouse' ? 'is-on' : ''} onClick={tool([{ type: 'SET_VIEW', mode: 'dollhouse' }])}><Layers3 size={17} aria-hidden="true" /><span>Dollhouse</span></button>
     <span className="gcs-sep" aria-hidden="true" />
     <select aria-label="Camera view" value="" onChange={e => { if (e.target.value) runUi([{ type: 'SET_VIEW', mode: v.mode === 'walkthrough' || v.mode === 'interior' ? 'exterior' : v.mode }, { type: 'CHANGE_CAMERA', preset: e.target.value }]); }}>
-      <option value="">View…</option><option value="front">Front</option><option value="back">Back</option><option value="left">Left</option><option value="right">Right</option><option value="top">Top</option><option value="iso">Corner</option><option value="ground">Street level</option>
+      <option value="">View…</option><option value="front">Front</option><option value="back">Back</option><option value="left">Left</option><option value="right">Right</option><option value="top">Top</option><option value="iso">Corner</option><option value="aerial">Aerial</option><option value="ground">Street level</option>
     </select>
     <select aria-label="Lighting" value={v.lighting} onChange={e => runUi([{ type: 'SET_LIGHTING', preset: e.target.value }])}><option value="day">Day</option><option value="sunset">Sunset</option><option value="evening">Evening</option></select>
+    <select aria-label="Render quality" value={quality} onChange={e => changeQuality(e.target.value)} title="Render quality on this device"><option value="auto">Quality: auto</option><option value="high">High</option><option value="balanced">Balanced</option><option value="low">Fast</option></select>
     <button type="button" className={v.projection === 'orthographic' ? 'is-on' : ''} onClick={tool([{ type: 'SET_VIEW', mode: v.projection === 'orthographic' ? 'perspective' : 'orthographic' }])} title="Perspective / orthographic"><SquareDashed size={17} aria-hidden="true" /><span>{v.projection === 'orthographic' ? 'Ortho' : 'Persp'}</span></button>
     <span className="gcs-sep" aria-hidden="true" />
     <button type="button" onClick={() => { if (mobile) setSheet(state.selection ? 'edit' : 'project'); else setPanels(p => ({ ...p, right: true })); if (!state.selection) flash('Tap part of the building to change its finish.'); }}><Palette size={17} aria-hidden="true" /><span>Materials</span></button>
@@ -294,7 +311,8 @@ export default function StudioApp({ initialStatus }) {
     {v.mode === 'walkthrough' && <div className="gcs-walkpad" aria-label="Walk controls">
       {[['↑', 18, 0, 0, 'Forward'], ['↓', -18, 0, 0, 'Back'], ['⟲', 0, 0, 0.25, 'Turn left'], ['⟳', 0, 0, -0.25, 'Turn right']].map(([l, f, s, t, aria]) =>
         <button type="button" key={aria} aria-label={aria} onClick={() => vp.current?.walkStep(f, s, t)}>{l}</button>)}
-      <small>Drag to look · W A S D or arrows</small>
+      {floors > 1 && <><button type="button" aria-label="Go up a floor" onClick={() => walkFloor(1)}>⤒</button><button type="button" aria-label="Go down a floor" onClick={() => walkFloor(-1)}>⤓</button></>}
+      <small>Drag to look · W A S D or arrows · PgUp / PgDn floors</small>
     </div>}
     {v.measuring && <div className="gcs-measure-out" role="status">{measureOut?.distance != null ? <>Distance <b>{ftin(measureOut.distance)}</b> · horizontal {ftin(measureOut.horizontal)} · vertical {ftin(measureOut.vertical)}</> : measureOut?.points ? 'Now tap the second point.' : 'Tap the first point.'}</div>}
     {sel && !mobile && <div className="gcs-selchip">{sel.el.name}</div>}
