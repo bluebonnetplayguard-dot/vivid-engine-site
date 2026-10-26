@@ -7,10 +7,16 @@
 #   geometry Vivid Build Studio geometry service (optional: starts only with --profile studio)
 name: vivid
 
+# Container logs rotate (3 x 20 MB per container) so a noisy service can't fill the disk.
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "20m", max-file: "3" }
+
 services:
   postgres:
     image: postgres:16-bookworm
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -23,10 +29,14 @@ services:
       retries: 5
 
   app:
+    # APP_IMAGE unset: built on this server, as before. CI deploys (gc3d.cloud) set it to a prebuilt, tested image
+    # (ghcr.io/...:sha-<commit>) and run compose with --no-build, so the server never compiles anything.
+    image: ${APP_IMAGE:-vivid-app:latest}
     build:
       context: ..
       dockerfile: Dockerfile
     restart: unless-stopped
+    logging: *logging
     env_file: .env
     environment:
       NODE_ENV: production
@@ -47,6 +57,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     read_only: true
+    logging: *logging
     tmpfs:
       - /tmp
     mem_limit: 768m
@@ -55,11 +66,16 @@ services:
   web:
     image: nginx:1.27-alpine
     restart: unless-stopped
+    logging: *logging
     ports:
       - "80:80"
       - "443:443"
     environment:
       DOMAIN: ${DOMAIN}
+      # Staging/second sites: ROBOTS_TAG="noindex, nofollow" keeps search engines out; empty sends no header.
+      ROBOTS_TAG: ${ROBOTS_TAG:-}
+      # Optional landing path for "/" (gc3d.cloud: /studio). Empty serves the normal home page.
+      HOME_REDIRECT: ${HOME_REDIRECT:-}
     volumes:
       - ./nginx/templates:/etc/nginx/templates:ro
       - certs:/etc/letsencrypt:ro
@@ -74,6 +90,7 @@ services:
   certbot:
     image: certbot/certbot:v2.11.0
     restart: unless-stopped
+    logging: *logging
     volumes:
       - certs:/etc/letsencrypt
       - acme:/var/www/acme

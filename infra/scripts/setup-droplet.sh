@@ -3,6 +3,8 @@
 #   bash scripts/setup-droplet.sh
 # Prerequisites: DNS A/AAAA records for the domain and www already point at this Droplet,
 # and /opt/vivid/infra/.env is filled in (copy from .env.example).
+# SKIP_STACK=1: prepare the server and the certificate but don't build or start the app. Used on servers that
+# receive prebuilt images from CI (gc3d.cloud): the first CI deploy starts the stack (docs/GC3D-DEPLOY.md).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -f .env ] || { echo "Create /opt/vivid/infra/.env first (see .env.example)."; exit 1; }
@@ -50,8 +52,12 @@ echo "==> First HTTPS certificate for $DOMAIN and www.$DOMAIN"
 docker compose run --rm -p 80:80 --entrypoint certbot certbot certonly --standalone \
   -d "$DOMAIN" -d "www.$DOMAIN" --email "$LETSENCRYPT_EMAIL" --agree-tos --no-eff-email --non-interactive --keep-until-expiring
 
-echo "==> Starting the stack"
-docker compose up -d --build
+if [ "${SKIP_STACK:-}" = 1 ]; then
+  echo "==> SKIP_STACK=1: not building or starting the app (CI deploys it)"
+else
+  echo "==> Starting the stack"
+  docker compose up -d --build
+fi
 
 echo "==> Nightly database backup at 03:15"
 chmod +x scripts/*.sh

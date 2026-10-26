@@ -7,6 +7,8 @@ dist/
 infra/import/
 infra/logs/
 backups/
+# server-side release records (infra/scripts/remote-deploy.sh)
+releases/
 .seo-build/
 .vite/
 __pycache__/

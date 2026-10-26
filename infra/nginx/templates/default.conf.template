@@ -25,6 +25,11 @@ map $request_uri $is_probe {
   ~*\.(php|asp|aspx|jsp|cgi|sql|bak|old|orig|swp|ini|log|sh|yml|yaml|env)(\?|$) 1;
 }
 
+# Per-deployment switches from docker-compose (empty = off). add_header with an empty value sends nothing,
+# and the map keeps "$home_redirect" testable in an if.
+map "" $robots_tag { default "${ROBOTS_TAG}"; }
+map "" $home_redirect { default "${HOME_REDIRECT}"; }
+
 server_tokens off;
 gzip on;
 # text/javascript is what the app sends for .js files; without it the main script went out uncompressed.
@@ -72,6 +77,7 @@ server {
   add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
   add_header X-Content-Type-Options "nosniff" always;
   add_header X-Frame-Options "SAMEORIGIN" always;
+  add_header X-Robots-Tag $robots_tag always;
   # Content-Security-Policy in REPORT-ONLY mode: browsers log what it would block (DevTools console) but nothing breaks.
   # Watch the console on checkout and sign-in for a week, add any missing source below, then rename the header to
   # Content-Security-Policy to enforce it.
@@ -150,6 +156,14 @@ server {
     add_header Permissions-Policy "camera=(), microphone=(self), geolocation=()" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Robots-Tag $robots_tag always;
+  }
+
+  # Optional landing page for the bare domain (HOME_REDIRECT). Without it "/" is the normal home page.
+  location = / {
+    if ($home_redirect) { return 302 $home_redirect; }
+    limit_req zone=pages burst=60 nodelay;
+    proxy_pass http://app:8080;
   }
 
   location / {
