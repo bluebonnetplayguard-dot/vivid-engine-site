@@ -83,6 +83,7 @@ const VideoStudio = lazy(() => import('@/pages/VideoStudio'));
 const VideoPricing = lazy(() => import('@/pages/VideoPricing'));
 const VideoAccount = lazy(() => import('@/pages/VideoAccount'));
 const VideoEditorPage = lazy(() => import('@/pages/VideoEditorPage'));
+const GcDesignStudio = lazy(() => import('@/modules/gc-3d-design-studio'));
 const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
@@ -191,6 +192,7 @@ const AuthenticatedApp = () => {
       {Object.entries(REDIRECTS).map(([from, to]) => <Route key={from} path={from} element={<RedirectTo to={to} />} />)}
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route path="/video/edit/:id" element={<VideoEditorPage />} />
+        <Route path="/studio" element={<GcDesignStudio />} />
         <Route element={<PortalLayout />}>
           <Route path="/portal" element={<PortalDashboard />} />
           <Route path="/portal/projects/:id" element={<ProjectDetail />} />

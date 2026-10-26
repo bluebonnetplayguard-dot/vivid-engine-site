@@ -1,6 +1,6 @@
 import { useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { LayoutDashboard, Briefcase, LogOut, Zap, Loader2 } from "lucide-react";
+import { LayoutDashboard, Briefcase, Box, LogOut, Zap, Loader2 } from "lucide-react";
 import { api } from '@/api/client';
 import { Button } from "@/components/ui/button";
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -27,6 +27,7 @@ export default function PortalLayout() {
         <nav className="flex-1 space-y-1 px-3 py-4">
           <Link to="/portal" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/10 hover:text-foreground"><LayoutDashboard className="h-4 w-4" /> Dashboard</Link>
           <Link to="/portal" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/10 hover:text-foreground"><Briefcase className="h-4 w-4" /> My Projects</Link>
+          <Link to="/studio" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/10 hover:text-foreground"><Box className="h-4 w-4" /> 3D Design Studio</Link>
         </nav>
         <div className="p-3">
           <Button variant="outline" size="sm" className="w-full" onClick={logout}><LogOut className="mr-2 h-4 w-4" /> Sign out</Button>

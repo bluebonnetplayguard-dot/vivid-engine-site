@@ -10,7 +10,7 @@
     "migrate": "node dist/scripts/migrate.js",
     "import:base44": "node dist/scripts/import-base44.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test --test-concurrency=1 test/pricing-engine.test.mjs test/history.test.mjs test/ai-router.test.mjs test/billing-monitor.test.mjs test/pricing-checkout.test.mjs test/seo-server.test.mjs"
+    "test": "node --test --test-concurrency=1 test/pricing-engine.test.mjs test/history.test.mjs test/ai-router.test.mjs test/billing-monitor.test.mjs test/pricing-checkout.test.mjs test/seo-server.test.mjs test/studio3d.test.mjs"
   },
   "engines": {
     "node": ">=20"

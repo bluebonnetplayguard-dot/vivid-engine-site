@@ -406,6 +406,29 @@ const buildStudio = {
   },
 };
 
+// GC 3D Design Studio (/api/studio3d). Projects hold designs (variations); each design keeps its versions.
+const studio3d = {
+  status: () => request('GET', '/studio3d/status'),
+  projects: () => request('GET', '/studio3d/projects'),
+  createProject: body => request('POST', '/studio3d/projects', { body }),            // { name, design: { title, data } }
+  project: id => request('GET', `/studio3d/projects/${encodeURIComponent(id)}`),       // { project, designs, images }
+  createDesign: (projectId, body) => request('POST', `/studio3d/projects/${encodeURIComponent(projectId)}/designs`, { body }),
+  design: id => request('GET', `/studio3d/designs/${encodeURIComponent(id)}`),
+  saveDesign: (id, body) => request('PUT', `/studio3d/designs/${encodeURIComponent(id)}`, { body }),   // { data, baseVersion, note }
+  versions: id => request('GET', `/studio3d/designs/${encodeURIComponent(id)}/versions`),
+  version: (id, v) => request('GET', `/studio3d/designs/${encodeURIComponent(id)}/versions/${encodeURIComponent(v)}`),
+  // { designId, label, dataUrl, camera } -> image row. The JPEG goes up as raw bytes (Nginx caps bodies at 1 MB).
+  async saveImage(projectId, { dataUrl, label, designId, camera, lighting }) {
+    const blob = await (await fetch(dataUrl)).blob();
+    const q = new URLSearchParams({ label: label || '', ...(designId ? { designId } : {}), meta: JSON.stringify({ camera, lighting }) });
+    const res = await authedFetch(`/studio3d/projects/${encodeURIComponent(projectId)}/images?${q}`, { method: 'POST', body: blob, headers: { 'Content-Type': blob.type || 'image/jpeg' } });
+    return res.json();
+  },
+  // The image itself needs the session, so it comes back as a Blob for an object URL.
+  async image(id) { const res = await authedFetch(`/studio3d/images/${encodeURIComponent(id)}`); return res.blob(); },
+  interpret: body => request('POST', '/studio3d/interpret', { body }),                 // { message, context } -> { reply, commands, engine }
+};
+
 const stackAdvisor = {
   // { message } -> { reply, edge?, stack?, results?, question? }  (evidence-based; never states a link without evidence)
   ask: body => request('POST', '/stack-advisor/ask', { body }),
@@ -452,5 +475,5 @@ const billing = {
   unthrottle: userId => request('DELETE', `/admin/billing/throttles/${encodeURIComponent(userId)}`),
 };
 
-export const api = { auth, entities, functions, analytics, aiSearch, history, video, buildStudio, stackAdvisor, payments, billing };
+export const api = { auth, entities, functions, analytics, aiSearch, history, video, buildStudio, studio3d, stackAdvisor, payments, billing };
 export default api;

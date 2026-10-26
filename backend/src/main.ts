@@ -35,6 +35,8 @@ async function bootstrap() {
   app.useBodyParser('json', { limit: '600kb' });
   // Video Studio caption audio: 30-second 16 kHz WAV pieces (~1 MB, under Nginx's 1 MB body limit).
   app.useBodyParser('raw', { type: 'audio/wav', limit: '1100kb' });
+  // GC 3D Design Studio presentation images (JPEG/PNG straight from the viewport, under Nginx's 1 MB limit).
+  app.useBodyParser('raw', { type: ['image/jpeg', 'image/png'], limit: '1000kb' });
   app.enableShutdownHooks();
   // No CORS: the site and API share one origin (https://vividenginesolutions.com and /api).
 

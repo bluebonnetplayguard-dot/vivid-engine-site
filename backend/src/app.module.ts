@@ -38,18 +38,20 @@ import { VideoController } from './video/video.controller';
 import { VideoService } from './video/video.service';
 import { BuildStudioController } from './build-studio/build-studio.controller';
 import { StackAdvisorController } from './stack-advisor/stack-advisor.controller';
+import { Studio3dController } from './studio3d/studio3d.controller';
+import { Studio3dService } from './studio3d/studio3d.service';
 
 @Module({
   imports: [
     // Default: 120 requests per minute per IP. Nginx applies a coarser limit in front.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
   ],
-  controllers: [AuthController, EntitiesController, FunctionsController, PaymentsController, SquareWebhookController, MiscController, AiSearchController, AiRouterController, BillingController, BillingWebhookController, HistoryController, VideoController, BuildStudioController, StackAdvisorController],
+  controllers: [AuthController, EntitiesController, FunctionsController, PaymentsController, SquareWebhookController, MiscController, AiSearchController, AiRouterController, BillingController, BillingWebhookController, HistoryController, VideoController, BuildStudioController, StackAdvisorController, Studio3dController],
   providers: [
     Db, Mail, RateLimiter, Realtime, Notifier, AuthService, EntitiesService,
     PaymentsService, AiService, Billing, PortalService, OpsService, PublicClients, MarketResearch, PricingService,
     HistoryService, BillingMonitorService, AiRouterService, AiSearchService, AiSearchBilling,
-    VideoService, VideoAi, VideoBilling,
+    VideoService, VideoAi, VideoBilling, Studio3dService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: JsonErrorFilter },
