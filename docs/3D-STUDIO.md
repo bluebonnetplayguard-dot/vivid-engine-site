@@ -67,6 +67,21 @@ Camera and finish changes apply instantly; geometry changes are shown as a propo
 `POST /api/studio3d/interpret`, which uses Claude (the existing `ANTHROPIC_API_KEY`) with a forced tool call. Calls are
 logged to the Billing Monitor (`workflow = studio3d`), respect its budgets, and are limited per user per day.
 
+## Rendering engine (plain three.js r171)
+
+| Feature | Where | Notes |
+|---|---|---|
+| PBR materials | `3d/materialFactory.js` | One factory per kind: surface finishes, glass, highlights, ground. Albedo, roughness and metalness come from the material library; coated metal and stone get a clearcoat layer at High quality. |
+| Relief maps | `3d/textures.js` (`finishMaps`) | Normal and roughness maps are derived from the same procedural painting (Sobel on the height), so mortar joints, lap lines and seams catch the light. Nothing is downloaded. |
+| Image-based lighting | `3d/environment.js` | A physically based sky (Preetham) is rendered for each lighting preset's sun position and PMREM-filtered. It works like an HDRI: it lights the materials and is the visible sky. If the GPU can't render it, the neutral studio environment is used instead. |
+| Tone mapping | `Viewport` | ACES filmic, with sRGB output and exposure set per preset. |
+| Soft shadows | `Viewport.fitShadows` | PCF soft shadows. The sun's shadow camera is fitted to the building, so the shadow map is spent on the house. The map is 4096 at High, 2048 at Balanced, and off at Fast. |
+| Camera presets | `cameraPreset` | Front, back, left, right, top, corner (iso), **aerial**, dollhouse, street level, room, and rotate by N°. |
+| First person | `walkStep`, `walkFloor`, `3d/walkCollision.js` | Walls block movement, doors wide enough for the body let you through, and you slide along walls. Long steps are split into sub-steps, so you can't tunnel through a wall. PageUp/PageDown or the ⤒⤓ buttons change floors. |
+| Dollhouse | `updateCutaway` | The roof is off, and exterior walls facing the camera (with their windows and doors) are cut away live as you orbit. |
+| Screenshots | `capture()` | Up to 4096 px. The frame is rendered 2× and scaled down (supersampling). Full shadows are always on for the image, even on devices that render without them. PNG or JPEG, with the "conceptual, not for construction" label. **Export** downloads a 2400 × 1500 PNG. |
+| Performance | `Viewport` | Renders on demand, so an idle view draws no frames and uses no GPU or battery. Rendering pauses in background tabs. Materials and textures are shared, and geometry is rebuilt only when it changes. **Quality: auto** starts at Balanced (Fast on phones and low-power devices) and steps down by itself when frames get slow. The chosen setting is kept per browser. `viewport.stats()` reports fps, draw calls and triangles. |
+
 ## API (`/api/studio3d`, all signed-in, owner-only)
 
 | Method | Path | |

@@ -42,7 +42,7 @@ export const Command = z.discriminatedUnion('type', [
   z.object({ type: z.literal('RESIZE_OBJECT'), target: Target, width: inches(1200).optional(), height: inches(1200).optional(), depth: inches(1200).optional(), sill: inches(1200).optional() }).strict(),
   z.object({ type: z.literal('ADD_COMPONENT'), component: z.literal('covered-patio'), side: z.enum(['front', 'back']).optional(), width: z.number().min(96).max(480).optional(), depth: z.number().min(72).max(240).optional() }).strict(),
   z.object({ type: z.literal('REMOVE_COMPONENT'), target: Target }).strict(),
-  z.object({ type: z.literal('CHANGE_CAMERA'), preset: z.enum(['front', 'back', 'left', 'right', 'top', 'iso', 'ground', 'room', 'rotate']), room: z.string().max(60).optional(), degrees: z.number().min(-360).max(360).optional() }).strict(),
+  z.object({ type: z.literal('CHANGE_CAMERA'), preset: z.enum(['front', 'back', 'left', 'right', 'top', 'iso', 'aerial', 'ground', 'room', 'rotate']), room: z.string().max(60).optional(), degrees: z.number().min(-360).max(360).optional() }).strict(),
   z.object({ type: z.literal('SET_VIEW'), mode: z.enum(['exterior', 'interior', 'dollhouse', 'walkthrough', 'floor', 'perspective', 'orthographic']), floor: z.union([z.literal(1), z.literal(2)]).optional() }).strict(),
   z.object({ type: z.literal('TOGGLE_LAYER'), layer: z.enum(['roof', 'exterior-walls', 'interior-walls', 'openings', 'floors', 'cabinets', 'site', 'dimensions', 'grid']), visible: z.boolean() }).strict(),
   z.object({ type: z.literal('SET_LIGHTING'), preset: z.enum(['day', 'sunset', 'evening']) }).strict(),

@@ -2,32 +2,26 @@
 // so selection, layers and material edits map straight back to model elements.
 // Frame: inches, z up (camera.up is set to +z in the viewport).
 import * as THREE from 'three';
-import { MATERIALS } from '../core/materials.js';
 import { floorById, openingsOn, roofGeometry, wallFrame } from '../core/model.js';
 import { materialOf } from '../core/commands.js';
-import { finishTexture } from './textures.js';
+import { createGlassMaterial, createSurfaceMaterial } from './materialFactory.js';
 
 const GLASS = '__glass';
 
 // Shared materials keyed by material id + color, so a color change re-uses or creates one material.
+// Materials come from the PBR factories; changing quality or evening mode rebuilds them on next use.
 export class MaterialBank {
-  constructor() { this.map = new Map(); this.evening = false; }
+  constructor({ quality = 'balanced' } = {}) { this.map = new Map(); this.evening = false; this.quality = quality; }
   get(materialId, color) {
-    const key = `${materialId}|${color || ''}|${this.evening ? 'e' : ''}`;
+    const key = `${materialId}|${color || ''}|${materialId === GLASS && this.evening ? 'e' : ''}|${this.quality}`;
     if (this.map.has(key)) return this.map.get(key);
-    let mat;
-    if (materialId === GLASS) {
-      mat = new THREE.MeshPhysicalMaterial({ color: this.evening ? '#ffd9a0' : '#9cc3dc', roughness: 0.05, metalness: 0.1, transparent: true, opacity: this.evening ? 0.9 : 0.42,
-        emissive: this.evening ? new THREE.Color('#ffb85c') : new THREE.Color(0), emissiveIntensity: this.evening ? 0.9 : 0, side: THREE.DoubleSide, depthWrite: false });
-    } else {
-      const def = MATERIALS[materialId] || { color: '#cccccc', pattern: 'flat', scale: 48, roughness: 0.8 };
-      mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color || def.color), roughness: def.roughness ?? 0.8, metalness: def.metalness ?? 0, map: finishTexture(def.pattern, def.scale) });
-      if (def.opacity != null) { mat.transparent = true; mat.opacity = def.opacity; mat.depthWrite = false; }
-    }
+    const mat = materialId === GLASS ? createGlassMaterial({ evening: this.evening, quality: this.quality }) : createSurfaceMaterial(materialId, { color, quality: this.quality });
     this.map.set(key, mat);
     return mat;
   }
-  setEvening(on) { if (this.evening !== on) { this.evening = on; } }
+  setEvening(on) { this.evening = !!on; }
+  // Different quality → new materials; old ones are disposed (textures are shared and cached, so they stay).
+  setQuality(q) { if (q === this.quality) return false; this.quality = q; this.dispose(); return true; }
   dispose() { for (const m of this.map.values()) m.dispose(); this.map.clear(); }
 }
 
@@ -102,7 +96,9 @@ export function buildScene(model, bank) {
   // Walls and their openings
   for (const wall of model.walls) {
     const fl = floorById(model, wall.floor);
-    const { length } = wallFrame(wall);
+    const { length, normal } = wallFrame(wall);
+    // Exterior pieces carry their outward normal so the dollhouse view can cut away the walls facing the camera.
+    const cut = wall.exterior ? { outward: [normal[0], normal[1]], wallId: wall.id } : {};
     const ext = wall.exterior ? wall.thickness / 2 : 0;
     const shape = new THREE.Shape([new THREE.Vector2(-ext, 0), new THREE.Vector2(length + ext, 0), new THREE.Vector2(length + ext, wall.height), new THREE.Vector2(-ext, wall.height)]);
     const ops = openingsOn(model, wall.id);
@@ -118,9 +114,9 @@ export function buildScene(model, bank) {
     const outer = wall.exterior ? surfaceMat(wall, 'wall.exterior') : surfaceMat(wall, 'wall.interior');
     const inner = surfaceMat(wall, 'wall.interior');
     const edge = bank.get('drywall');
-    add(group, new THREE.Mesh(wallGeometry(shape, wall.thickness), [outer, inner, edge]), { id: wall.id, surface: wall.exterior ? 'wall.exterior' : 'wall.interior', layer, floor: wall.floor, kind: 'wall' });
+    add(group, new THREE.Mesh(wallGeometry(shape, wall.thickness), [outer, inner, edge]), { id: wall.id, surface: wall.exterior ? 'wall.exterior' : 'wall.interior', layer, floor: wall.floor, kind: 'wall', ...cut });
 
-    for (const o of ops) addOpening(group, wall, o, add, surfaceMat, bank);
+    for (const o of ops) addOpening(group, wall, o, add, surfaceMat, bank, cut);
   }
 
   // Gable ends, roof slabs and the top-floor ceiling
@@ -143,12 +139,12 @@ export function buildScene(model, bank) {
     }
     // Gables: the exterior walls perpendicular to the ridge get a triangle up to the roof.
     for (const wall of model.walls.filter(w => w.exterior && w.floor === roof.floor && (w.face === 'left' || w.face === 'right'))) {
-      const { length } = wallFrame(wall);
+      const { length, normal } = wallFrame(wall);
       const t = wall.thickness;
       const shape = new THREE.Shape([new THREE.Vector2(-t / 2, 0), new THREE.Vector2(length + t / 2, 0), new THREE.Vector2(length / 2, rise * (run - 0) / run)]);
       const grp = new THREE.Group(); grp.matrixAutoUpdate = false; grp.matrix.copy(wallMatrix(wall, fl.elevation + wall.height)); root.add(grp);
       add(grp, new THREE.Mesh(wallGeometry(shape, t), [surfaceMat(wall, 'wall.exterior'), surfaceMat(wall, 'wall.interior'), bank.get('drywall')]),
-        { id: wall.id, surface: 'wall.exterior', layer: 'gable', floor: wall.floor, kind: 'wall' });
+        { id: wall.id, surface: 'wall.exterior', layer: 'gable', floor: wall.floor, kind: 'wall', outward: [normal[0], normal[1]], wallId: wall.id });
     }
     const ceil = new THREE.Mesh(makeBox(fp.maxX - fp.minX - 6, fp.maxY - fp.minY - 6, 1), bank.get('drywall'));
     ceil.position.set(cx, cy, base + 0.5);
@@ -177,11 +173,11 @@ export function buildScene(model, bank) {
   return { root, pickables, byId };
 }
 
-function addOpening(group, wall, o, add, surfaceMat, bank) {
+function addOpening(group, wall, o, add, surfaceMat, bank, cut = {}) {
   const t = wall.thickness, l = o.offset - o.width / 2, r = o.offset + o.width / 2, b = o.sill, top = o.sill + o.height;
   const frameMat = surfaceMat(o, 'opening.frame');
   const fw = 2.5, fd = Math.min(t, 4.5);
-  const base = { id: o.id, layer: 'openings', floor: wall.floor, kind: 'opening' };
+  const base = { id: o.id, layer: 'openings', floor: wall.floor, kind: 'opening', ...cut };
   const faces = wall.exterior ? [t / 2 - fd / 2 + 0.75] : [t / 2 - fd / 2 + 0.6, -(t / 2 - fd / 2 + 0.6)];
   for (const z of faces) {
     const pieces = [[o.width + 2 * fw, fw, (l + r) / 2, top + fw / 2], [fw, o.height, l - fw / 2, (b + top) / 2], [fw, o.height, r + fw / 2, (b + top) / 2]];

@@ -11,7 +11,7 @@ export const COMMAND_TYPES = [
   'SELECT_OBJECT', 'UPDATE_MATERIAL', 'UPDATE_COLOR', 'MOVE_OBJECT', 'RESIZE_OBJECT', 'ADD_COMPONENT', 'REMOVE_COMPONENT',
   'CHANGE_CAMERA', 'SET_VIEW', 'TOGGLE_LAYER', 'SET_LIGHTING', 'GENERATE_RENDER', 'CREATE_DESIGN_VARIATION', 'SAVE_DESIGN',
 ];
-export const CAMERA_PRESETS = ['front', 'back', 'left', 'right', 'top', 'iso', 'ground', 'room', 'rotate'];
+export const CAMERA_PRESETS = ['front', 'back', 'left', 'right', 'top', 'iso', 'aerial', 'ground', 'room', 'rotate'];
 export const VIEW_MODES = ['exterior', 'interior', 'dollhouse', 'walkthrough', 'floor', 'perspective', 'orthographic'];
 export const LAYERS = ['roof', 'exterior-walls', 'interior-walls', 'openings', 'floors', 'cabinets', 'site', 'dimensions', 'grid'];
 export const LIGHTING = ['day', 'sunset', 'evening'];

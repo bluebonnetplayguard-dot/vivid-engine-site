@@ -126,9 +126,9 @@ export function quickParse(input, ctx = {}) {
     const view = t.match(/\b(front|back|rear|left side|right side|left|right|top|above|overhead|aerial|bird'?s[- ]eye|street|ground level|eye level|corner|three[- ]quarter)\b/);
     if (view && has(t, /\b(show|view|see|look|go|take|camera|from|switch|move to|what)\b/) && !SURFACES.slice(0, 8).some(s => s.re.test(t.replace(/\bhouse\b/, '')))) {
       const v = view[1];
-      const preset = /front/.test(v) ? 'front' : /back|rear/.test(v) ? 'back' : /left/.test(v) ? 'left' : /right/.test(v) ? 'right' : /top|above|overhead|aerial|bird/.test(v) ? 'top' : /street|ground|eye/.test(v) ? 'ground' : 'iso';
+      const preset = /front/.test(v) ? 'front' : /back|rear/.test(v) ? 'back' : /left/.test(v) ? 'left' : /right/.test(v) ? 'right' : /aerial|bird|drone/.test(v) ? 'aerial' : /top|above|overhead/.test(v) ? 'top' : /street|ground|eye/.test(v) ? 'ground' : 'iso';
       if (!cmds.some(c => c.type === 'SET_VIEW')) cmds.push({ type: 'SET_VIEW', mode: 'exterior' });
-      cmds.push({ type: 'CHANGE_CAMERA', preset }); reply = reply || `Showing the ${preset === 'iso' ? 'corner' : preset === 'ground' ? 'street-level' : preset} view.`;
+      cmds.push({ type: 'CHANGE_CAMERA', preset }); reply = reply || `Showing the ${preset === 'iso' ? 'corner' : preset === 'ground' ? 'street-level' : preset === 'aerial' ? 'aerial (bird’s-eye)' : preset} view.`;
     }
   }
   if (has(t, /\b(inside|interior)\b/) && !cmds.length && !SURFACES.slice(0, 8).some(s => s.re.test(t))) { cmds.push({ type: 'SET_VIEW', mode: 'interior' }); reply = 'Interior view.'; }

@@ -52,7 +52,7 @@ export const ResizePayload = z.object({ target: Target, width: sizeIn(1200).opti
   .refine(p => [p.width, p.height, p.depth, p.sill].some(v => v != null), 'a resize needs width, height, depth or sill (inches)');
 export const AddComponentPayload = z.object({ component: z.literal('covered-patio'), side: z.enum(['front', 'back']).optional(), width: z.number().min(96).max(480).optional(), depth: z.number().min(72).max(240).optional() }).strict();
 export const RemoveComponentPayload = z.object({ target: Target }).strict();
-export const CameraPayload = z.object({ preset: z.enum(['front', 'back', 'left', 'right', 'top', 'iso', 'ground', 'room', 'rotate']), room: z.string().max(60).optional(), degrees: z.number().min(-360).max(360).optional() }).strict()
+export const CameraPayload = z.object({ preset: z.enum(['front', 'back', 'left', 'right', 'top', 'iso', 'aerial', 'ground', 'room', 'rotate']), room: z.string().max(60).optional(), degrees: z.number().min(-360).max(360).optional() }).strict()
   .refine(p => p.preset !== 'rotate' || typeof p.degrees === 'number', 'rotate needs degrees')
   .refine(p => p.preset !== 'room' || !!p.room, 'room view needs a room name');
 export const ViewPayload = z.object({ mode: z.enum(['exterior', 'interior', 'dollhouse', 'walkthrough', 'floor', 'perspective', 'orthographic']), floor: z.union([z.literal(1), z.literal(2)]).optional() }).strict();

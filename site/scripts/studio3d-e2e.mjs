@@ -206,6 +206,97 @@ async function desktop(browser) {
     await ask(page, 'Show me the front of the house'); await settle(page);
     await page.screenshot({ path: `${OUT}/19-farmhouse-variation.png` });
   });
+  // ---------- 3D engine (PR 9): rendering quality, cameras, first person, dollhouse, capture, performance ----------
+  await step('Engine: PBR materials with relief maps, sky environment, ACES, soft shadows fitted to the house', async () => {
+    await page.evaluate(() => window.__gcStudio.viewport.setQuality('high')); await wait(300);
+    const r = await page.evaluate(() => {
+      const v = window.__gcStudio.viewport, roof = v.built.byId.get('roof-main')[0], m = roof.userData.baseMaterial || roof.material;
+      const wall = v.built.byId.get('w1-front')[0], wm = [].concat(wall.userData.baseMaterial || wall.material)[0];
+      const cam = v.sun.shadow.camera;
+      return { tone: v.renderer.toneMapping, env: !!v.scene.environment, bg: !!v.scene.background?.isTexture, normal: !!wm.normalMap, rough: !!wm.roughnessMap,
+        pbr: m.type, shadowType: v.renderer.shadowMap.type, shadowSpan: cam.right - cam.left, map: v.sun.shadow.mapSize.x };
+    });
+    assert.equal(r.tone, 4, 'ACES filmic');           // THREE.ACESFilmicToneMapping
+    assert.ok(r.env && r.bg, 'sky environment lights the scene and is the background');
+    assert.ok(r.normal && r.rough, 'siding has normal + roughness maps');
+    assert.match(r.pbr, /MeshStandardMaterial|MeshPhysicalMaterial/);
+    assert.equal(r.shadowType, 2, 'PCF soft shadows');
+    assert.ok(r.shadowSpan < 1400, `shadow frustum is fitted to the building (${Math.round(r.shadowSpan)}")`);
+    assert.equal(r.map, 4096);
+    await page.evaluate(() => { const v = window.__gcStudio.viewport; v.setMode('exterior'); v.setLighting('day'); v.cameraPreset('iso', { instant: true }); }); await wait(400);
+    await page.screenshot({ path: `${OUT}/20-high-quality.png` });
+  });
+  await step('Engine: renders on demand (an idle view draws no frames)', async () => {
+    await wait(600);
+    const idle = await page.evaluate(() => new Promise(res => { const i = window.__gcStudio.viewport.renderer.info; const f0 = i.render.frame; setTimeout(() => res(i.render.frame - f0), 1000); }));
+    assert.ok(idle <= 1, `idle frames in 1 s: ${idle}`);
+    const moving = await page.evaluate(() => new Promise(res => { const v = window.__gcStudio.viewport, i = v.renderer.info, f0 = i.render.frame; v.cameraPreset('front'); setTimeout(() => res(i.render.frame - f0), 500); }));
+    assert.ok(moving > 10, `frames while the camera flies: ${moving}`);
+  });
+  await step('Engine: quality setting (fast / balanced / high) is applied and remembered', async () => {
+    await page.getByLabel('Render quality').selectOption('low'); await wait(300);
+    let s = await page.evaluate(() => window.__gcStudio.viewport.stats());
+    assert.equal(s.quality, 'low'); assert.equal(s.shadows, false);
+    assert.equal(await page.evaluate(() => localStorage.getItem('gcs.quality')), 'low');
+    await page.getByLabel('Render quality').selectOption('high'); await wait(300);
+    s = await page.evaluate(() => window.__gcStudio.viewport.stats());
+    assert.equal(s.quality, 'high'); assert.equal(s.shadows, true);
+    assert.ok(s.drawCalls > 0 && s.triangles > 0);
+  });
+  await step('Engine: camera presets incl. aerial from the View menu', async () => {
+    await page.getByLabel('Camera view').selectOption('aerial');
+    await page.waitForFunction(() => !window.__gcStudio.viewport.anim, null, { timeout: 15000 });   // software GL is slow at high quality
+    const p = await pose(page);
+    assert.ok(p.position[2] > 600, `aerial camera is high (${Math.round(p.position[2])}")`);
+    await page.screenshot({ path: `${OUT}/21-aerial.png` });
+  });
+  await step('Engine: dollhouse cuts away the walls facing the camera', async () => {
+    const r = await page.evaluate(async () => {
+      const v = window.__gcStudio.viewport; v.setMode('dollhouse'); v.cameraPreset('front', { instant: true });
+      await new Promise(r => setTimeout(r, 100));
+      const vis = id => v.built.byId.get(id).some(m => m.visible);
+      const front = vis('w1-front'), back = vis('w1-back'), door = vis('o-front-door');
+      v.cameraPreset('back', { instant: true }); await new Promise(r => setTimeout(r, 100));
+      return { front, back, door, frontAfter: vis('w1-front'), backAfter: vis('w1-back') };
+    });
+    assert.deepEqual(r, { front: false, back: true, door: false, frontAfter: true, backAfter: false });
+    await page.evaluate(() => window.__gcStudio.viewport.cameraPreset('dollhouse', { instant: true })); await wait(300);
+    await page.screenshot({ path: `${OUT}/22-dollhouse-cutaway.png` });
+  });
+  await step('Engine: first person: walls stop you, the front door lets you in, floors change', async () => {
+    const r = await page.evaluate(() => {
+      const v = window.__gcStudio.viewport; v.setMode('walkthrough');
+      const start = v.walk.pos.clone();
+      const inn = v.walkStep(60);                                   // straight through the front door
+      const inside = v.walk.pos.y > 10;
+      v.walk.yaw = -Math.PI / 2;                                    // turn to face the front wall from inside
+      for (let i = 0; i < 10; i++) v.walkStep(40);
+      const y = v.walk.pos.y;
+      v.walk.pos.x = 60; v.walk.pos.y = 30; v.walk.yaw = -Math.PI / 2;   // a spot with no door
+      const hit = v.walkStep(60);
+      const up = v.walkFloor(1), z = v.walk.pos.z, top = v.walkFloor(1);
+      v.walkFloor(-1);
+      return { started: start.y < 0, inBlocked: inn.blocked, inside, outAgain: y < 0, wallBlocked: hit.blocked, wallY: v.walk.pos.y, up: up.level, z, top: top.error };
+    });
+    assert.equal(r.started, true); assert.equal(r.inBlocked, false); assert.equal(r.inside, true);
+    assert.equal(r.outAgain, true, 'walking back out through the same door works');
+    assert.equal(r.wallBlocked, true);
+    assert.equal(r.up, 2); assert.equal(r.z, 184); assert.match(r.top, /top floor/);
+    await page.screenshot({ path: `${OUT}/23-first-person.png` });
+    await page.evaluate(() => window.__gcStudio.viewport.setMode('exterior', { reframe: true })); await wait(800);
+  });
+  await step('Engine: export is a supersampled 2400 × 1500 PNG with the conceptual label', async () => {
+    const r = await page.evaluate(async () => {
+      const v = window.__gcStudio.viewport, w0 = v.renderer.domElement.width;
+      const url = v.capture({ width: 2400, height: 1500, format: 'png', title: 'Test' });
+      const img = new Image(); img.src = url; await img.decode();
+      return { png: url.startsWith('data:image/png'), w: img.width, h: img.height, kb: Math.round(url.length * 0.75 / 1024), restored: v.renderer.domElement.width === w0 };
+    });
+    assert.deepEqual([r.png, r.w, r.h, r.restored], [true, 2400, 1500, true]);
+    assert.ok(r.kb > 200, `image has detail (${r.kb} KB)`);
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('navigation', { name: 'Design controls' }).getByRole('button', { name: 'Export', exact: true }).click()]);
+    assert.match(dl.suggestedFilename(), /\.png$/);
+  });
   await step('No uncaught page errors on desktop', async () => { assert.deepEqual(errors, []); });
   await ctx.close();
 }
