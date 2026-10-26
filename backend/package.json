@@ -10,7 +10,7 @@
     "migrate": "node dist/scripts/migrate.js",
     "import:base44": "node dist/scripts/import-base44.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test --test-concurrency=1 test/pricing-engine.test.mjs test/history.test.mjs test/ai-router.test.mjs test/billing-monitor.test.mjs test/pricing-checkout.test.mjs test/seo-server.test.mjs test/studio3d.test.mjs test/building-model.test.mjs"
+    "test": "node --test --test-concurrency=1 test/pricing-engine.test.mjs test/history.test.mjs test/ai-router.test.mjs test/billing-monitor.test.mjs test/pricing-checkout.test.mjs test/seo-server.test.mjs test/studio3d.test.mjs test/building-model.test.mjs test/geometry-reader.test.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -31,6 +31,7 @@
     "pg": "^8.13.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "three": "^0.171.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -41,6 +42,7 @@
     "@types/node": "^20.19.43",
     "@types/nodemailer": "^8.0.2",
     "@types/pg": "^8.11.10",
+    "@types/three": "^0.171.0",
     "typescript": "^5.7.2"
   }
 }
