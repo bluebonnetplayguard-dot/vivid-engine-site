@@ -30,7 +30,7 @@ async function bootstrap() {
   // through, and App Platform or direct access gets compression too. Streams (live updates
   // and AI Search answers, both server-sent events) are excluded: compression would hold them back.
   app.use(compression({
-    filter: (req: Request, res: Response) => req.path !== '/api/events' && req.path !== '/api/ai-search/ask' && compression.filter(req, res),
+    filter: (req: Request, res: Response) => req.path !== '/api/events' && req.path !== '/api/ai-search/ask' && !/^\/api\/projects\/[^/]+\/(takeoffs|estimates)\/[^/]+\/events$/.test(req.path) && compression.filter(req, res),
   }));
   app.useBodyParser('json', { limit: '600kb' });
   // Video Studio caption audio: 30-second 16 kHz WAV pieces (~1 MB, under Nginx's 1 MB body limit).
