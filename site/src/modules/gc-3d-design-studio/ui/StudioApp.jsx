@@ -196,9 +196,14 @@ export default function StudioApp({ initialStatus }) {
         setMessages(m => [...m, { role: 'ai', error: true, text: 'I didn’t understand that one, and the full AI interpreter isn’t switched on for this site yet. Try wording like the suggestions below.' }]);
         return;
       }
-      const res = await api.studio3d.interpret({ message: text, context: aiContext(st), history: messages.filter(x => x.role === 'user').slice(-4).map(x => x.text) });
+      const res = await api.studio3d.interpret({
+        message: text, context: aiContext(st), model: st.model, selection: st.selection,
+        projectId: st.project?.id, designId: st.design?.id,
+        history: messages.filter(x => x.role === 'user').slice(-4).map(x => x.text),
+      });
       const r = res.commands?.length ? await run(res.commands) : { notes: [], errors: [] };
-      setMessages(m => [...m, { role: 'ai', text: res.reply || 'Done.', notes: r.notes, errors: [...(res.dropped || []), ...r.errors], engine: res.engine }]);
+      const cautions = (res.confirm || []).flatMap(c => [...(c.reason && c.needsConfirmation && /chose/.test(c.reason) ? [c.reason] : []), ...(c.warnings || [])]);
+      setMessages(m => [...m, { role: 'ai', text: res.reply || 'Done.', notes: [...r.notes, ...cautions], errors: [...(res.dropped || []), ...r.errors], engine: res.engine }]);
     } catch (e) {
       setMessages(m => [...m, { role: 'ai', error: true, text: e?.message || 'Something went wrong. Try again.' }]);
     } finally { setBusy(false); }

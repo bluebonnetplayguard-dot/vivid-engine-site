@@ -46,18 +46,20 @@ import { CostTableController, EstimatingController } from './estimating/estimati
 import { EstimatingService } from './estimating/estimating.service';
 import { ProposalController } from './proposal/proposal.controller';
 import { ProposalService } from './proposal/proposal.service';
+import { AssistantController } from './ai-commands/assistant.controller';
+import { InterpreterService } from './ai-commands/interpreter.service';
 
 @Module({
   imports: [
     // Default: 120 requests per minute per IP. Nginx applies a coarser limit in front.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
   ],
-  controllers: [AuthController, EntitiesController, FunctionsController, PaymentsController, SquareWebhookController, MiscController, AiSearchController, AiRouterController, BillingController, BillingWebhookController, HistoryController, VideoController, BuildStudioController, StackAdvisorController, Studio3dController, TakeoffController, EstimatingController, CostTableController, ProposalController],
+  controllers: [AuthController, EntitiesController, FunctionsController, PaymentsController, SquareWebhookController, MiscController, AiSearchController, AiRouterController, BillingController, BillingWebhookController, HistoryController, VideoController, BuildStudioController, StackAdvisorController, Studio3dController, TakeoffController, EstimatingController, CostTableController, ProposalController, AssistantController],
   providers: [
     Db, Mail, RateLimiter, Realtime, Notifier, AuthService, EntitiesService,
     PaymentsService, AiService, Billing, PortalService, OpsService, PublicClients, MarketResearch, PricingService,
     HistoryService, BillingMonitorService, AiRouterService, AiSearchService, AiSearchBilling,
-    VideoService, VideoAi, VideoBilling, Studio3dService, TakeoffService, EstimatingService, ProposalService,
+    VideoService, VideoAi, VideoBilling, Studio3dService, TakeoffService, EstimatingService, ProposalService, InterpreterService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: JsonErrorFilter },
