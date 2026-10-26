@@ -20,6 +20,8 @@ export class Studio3dController {
 
   @Get('designs/:id') design(@CurrentUser() user: AuthUser, @Param('id') id: string) { return this.studio.getDesign(user, id); }
   @Put('designs/:id') saveDesign(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: any) { return this.studio.saveDesign(user, id, body); }
+  @Get('designs/:id/geometry') geometry(@CurrentUser() user: AuthUser, @Param('id') id: string, @Query('version') version?: string) { return this.studio.geometry(user, id, version); }
+  @Post('geometry') @HttpCode(200) readGeometry(@Body() body: any) { return this.studio.readGeometry(body); }
   @Get('designs/:id/versions') versions(@CurrentUser() user: AuthUser, @Param('id') id: string) { return this.studio.versions(user, id); }
   @Get('designs/:id/versions/:v') version(@CurrentUser() user: AuthUser, @Param('id') id: string, @Param('v') v: string) { return this.studio.version(user, id, v); }
 

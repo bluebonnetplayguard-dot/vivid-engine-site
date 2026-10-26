@@ -6,6 +6,7 @@ import { ApiError, badRequest, notFound } from '../errors';
 import { BillingMonitorService } from '../billing-monitor/billing-monitor.service';
 import { Studio3dAi } from './studio3d-ai';
 import { BuildingModel, ModelParseError, buildingModelJsonSchema, errorsOnly, validateBuilding } from '../building-model';
+import { GeometryReader } from '../geometry-reader';
 
 const ID_RE = /^[a-f0-9]{24}$/;
 const LIMITS = { projects: 200, designsPerProject: 60, versionsKept: 100, imagesPerProject: 300, dataBytes: 500_000, imageBytes: 1_000_000 };
@@ -103,6 +104,29 @@ export class Studio3dService {
   }
 
   async getDesign(user: AuthUser, id: string) { this.on(); return this.design(user, id); }
+
+  // Measured geometry of a saved design (current version, or ?version=n).
+  async geometry(user: AuthUser, id: string, version?: string) {
+    this.on();
+    const d = await this.design(user, id);
+    let data = d.data;
+    if (version) {
+      const row = await this.db.one('SELECT data FROM studio_design_versions WHERE design_id = $1 AND version = $2', [id, Number(version) || 0]);
+      if (!row) throw notFound('That version isn’t saved.');
+      data = row.data;
+    }
+    const model = BuildingModel.parse(data.model);
+    return { designId: id, version: version ? Number(version) : d.version, geometry: GeometryReader.read(model) };
+  }
+
+  // Measured geometry of an unsaved model (what's on screen right now).
+  readGeometry(body: any) {
+    this.on();
+    let model: BuildingModel;
+    try { model = BuildingModel.parse(body?.model); }
+    catch (e) { if (e instanceof ModelParseError) throw badRequest(e.message, { code: 'MODEL_INVALID', issues: e.issues.slice(0, 20) }); throw e; }
+    return { geometry: GeometryReader.read(model) };
+  }
 
   // Save = new version. baseVersion guards against two tabs overwriting each other.
   async saveDesign(user: AuthUser, id: string, body: any) {

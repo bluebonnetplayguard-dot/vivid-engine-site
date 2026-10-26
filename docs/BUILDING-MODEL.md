@@ -67,3 +67,22 @@ Saving a design (`PUT /api/studio3d/designs/:id`) rejects schema errors and vali
 - `POST /api/studio3d/validate` `{ model }` → `{ ok, issues, findings }` without saving.
 
 Design versions are stored by the existing `studio_designs` / `studio_design_versions` tables (migration 009).
+
+## Geometry reader (`backend/src/geometry-reader/`)
+
+`GeometryReader.read(model)` turns a parsed model into measured geometry. Every number is a `Measured`:
+`{ value, unit, verified, source, from, ref? }`. A value is `verified` only when every element it was computed from
+is verified; its `source` is the weakest of their sources (sample < ai-inferred < contractor < blueprint).
+
+| Reading | Values |
+|---|---|
+| Wall | centerline length, outside length (corners included), height, thickness, gross area, opening area, net area, exterior-face area (siding), interior-face area (drywall/paint, at the floor's ceiling height), rooms on each side |
+| Opening | width, height, sill, head, area, trim perimeter (doors: 2h + w; windows: 2(w + h)), world center |
+| Room | area (three.js `ShapeUtils`), perimeter, width, depth, ceiling height, wall surface gross / openings / net (an opening counts for each room it opens into) |
+| Roof (gable) | pitch, angle, pitch factor, run, rise, ridge height, ridge length, rafter length, plan area, surface area, eave and rake lengths, squares |
+| Component | width, depth, height, top area, volume (slabs → concrete), front length (cabinet/counter runs) |
+| Floor | elevation, wall height, ceiling height, footprint area and perimeter (closed exterior loop; bounding box with a warning if open), room area, exterior and interior wall length |
+| Building | floors, footprint width/depth, total room area, height, window and door counts; `unverified[]`; `warnings[]` |
+
+API: `GET /api/studio3d/designs/:id/geometry[?version=n]` and `POST /api/studio3d/geometry { model }`.
+`backend/test/geometry-reader.test.mjs` checks the sample house against hand-worked numbers.
