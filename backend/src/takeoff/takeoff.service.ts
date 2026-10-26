@@ -49,7 +49,7 @@ export class TakeoffService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Loads the design's model at a version (current when omitted). Throws 400 when the model can't be read.
-  private async loadModel(projectId: string, designId: string, version?: number) {
+  async loadModel(projectId: string, designId: string, version?: number) {
     if (!ID_RE.test(designId)) throw notFound('Design not found.');
     const d = await this.db.one<{ id: string; version: number; data: any }>('SELECT id, version, data FROM studio_designs WHERE id = $1 AND project_id = $2', [designId, projectId]);
     if (!d) throw notFound('Design not found.');
@@ -151,6 +151,21 @@ export class TakeoffService implements OnModuleInit, OnModuleDestroy {
     if (!row) throw notFound('Takeoff not found.');
     const { current_version, ...r } = row;
     return { ...r, stale: r.status === 'done' && r.design_version < current_version };
+  }
+
+  // A finished takeoff for this design version with default settings: an existing run, or one computed now
+  // (milliseconds) and stored, so every estimate points at a takeoff the contractor can open.
+  async ensureFor(userId: string, projectId: string, designId: string): Promise<{ id: string; hash: string; result: TakeoffResult; version: number; title: string }> {
+    const { model, version } = await this.loadModel(projectId, designId);
+    const design = await this.db.one<{ title: string }>('SELECT title FROM studio_designs WHERE id = $1', [designId]);
+    const settings = cleanSettings(null);
+    const hash = createHash('sha256').update(JSON.stringify([ENGINE_VERSION, model.toJSON(), settings])).digest('hex');
+    const hit = await this.db.one<{ id: string; result: TakeoffResult }>(`SELECT id, result FROM takeoffs WHERE design_id = $1 AND design_version = $2 AND input_hash = $3 AND status = 'done' ORDER BY finished_date DESC LIMIT 1`, [designId, version, hash]);
+    if (hit) return { id: hit.id, hash, result: hit.result, version, title: design?.title ?? '' };
+    const result = buildTakeoff(model, settings);
+    const row = await this.db.one<{ id: string }>(`INSERT INTO takeoffs(project_id, design_id, design_version, user_id, status, progress, stage, input_hash, settings, result, started_date, finished_date)
+      VALUES ($1, $2, $3, $4, 'done', 100, 'Done (for an estimate)', $5, $6, $7, now(), now()) RETURNING id`, [projectId, designId, version, userId, hash, settings, result]);
+    return { id: row!.id, hash, result, version, title: design?.title ?? '' };
   }
 
   // Latest finished takeoff for a design (used by the estimating engine).

@@ -42,18 +42,20 @@ import { Studio3dController } from './studio3d/studio3d.controller';
 import { Studio3dService } from './studio3d/studio3d.service';
 import { TakeoffController } from './takeoff/takeoff.controller';
 import { TakeoffService } from './takeoff/takeoff.service';
+import { CostTableController, EstimatingController } from './estimating/estimating.controller';
+import { EstimatingService } from './estimating/estimating.service';
 
 @Module({
   imports: [
     // Default: 120 requests per minute per IP. Nginx applies a coarser limit in front.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
   ],
-  controllers: [AuthController, EntitiesController, FunctionsController, PaymentsController, SquareWebhookController, MiscController, AiSearchController, AiRouterController, BillingController, BillingWebhookController, HistoryController, VideoController, BuildStudioController, StackAdvisorController, Studio3dController, TakeoffController],
+  controllers: [AuthController, EntitiesController, FunctionsController, PaymentsController, SquareWebhookController, MiscController, AiSearchController, AiRouterController, BillingController, BillingWebhookController, HistoryController, VideoController, BuildStudioController, StackAdvisorController, Studio3dController, TakeoffController, EstimatingController, CostTableController],
   providers: [
     Db, Mail, RateLimiter, Realtime, Notifier, AuthService, EntitiesService,
     PaymentsService, AiService, Billing, PortalService, OpsService, PublicClients, MarketResearch, PricingService,
     HistoryService, BillingMonitorService, AiRouterService, AiSearchService, AiSearchBilling,
-    VideoService, VideoAi, VideoBilling, Studio3dService, TakeoffService,
+    VideoService, VideoAi, VideoBilling, Studio3dService, TakeoffService, EstimatingService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: JsonErrorFilter },
