@@ -5,26 +5,25 @@ import { Db } from '../db';
 import { ApiError, badRequest, notFound } from '../errors';
 import { BillingMonitorService } from '../billing-monitor/billing-monitor.service';
 import { Studio3dAi } from './studio3d-ai';
+import { BuildingModel, ModelParseError, buildingModelJsonSchema, errorsOnly, validateBuilding } from '../building-model';
 
 const ID_RE = /^[a-f0-9]{24}$/;
 const LIMITS = { projects: 200, designsPerProject: 60, versionsKept: 100, imagesPerProject: 300, dataBytes: 500_000, imageBytes: 1_000_000 };
-const COLLECTION_MAX: Record<string, number> = { floors: 10, walls: 600, openings: 600, rooms: 300, roofs: 20, components: 600 };
 
 export const studioEnabled = () => config.STUDIO3D_ENABLED === 'true' || (config.STUDIO3D_ENABLED !== 'false' && config.NODE_ENV !== 'production');
 
 const text = (v: unknown, max: number, fallback = '') => (typeof v === 'string' ? v.trim().slice(0, max) : fallback);
 
-// Checks the saved design document: the structured model plus view settings. The model's contents are
-// re-validated in the browser on load; here we guard shape and size.
+// Checks the saved design document: the structured model (full schema + the same placement rules the
+// studio enforces) plus view settings. A model the studio can produce always passes.
 function cleanData(data: any) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw badRequest('Design data is missing.');
-  const m = data.model;
-  if (!m || m.schema !== 'gc-building/1') throw badRequest('Unknown building model format.');
-  for (const [k, max] of Object.entries(COLLECTION_MAX)) {
-    if (!Array.isArray(m[k])) throw badRequest(`The model is missing ${k}.`);
-    if (m[k].length > max) throw badRequest(`The model has too many ${k}.`);
-  }
-  const out = { model: m, view: data.view && typeof data.view === 'object' ? data.view : {} };
+  let model: BuildingModel;
+  try { model = BuildingModel.parse(data.model); }
+  catch (e) { if (e instanceof ModelParseError) throw badRequest(e.message, { code: 'MODEL_INVALID', issues: e.issues.slice(0, 20) }); throw e; }
+  const errors = errorsOnly(validateBuilding(model));
+  if (errors.length) throw badRequest(`The building model has problems: ${errors.slice(0, 3).map(f => f.message).join(' ')}`, { code: 'MODEL_INVALID', findings: errors.slice(0, 20) });
+  const out = { model: model.toJSON(), view: data.view && typeof data.view === 'object' ? data.view : {} };
   if (Buffer.byteLength(JSON.stringify(out)) > LIMITS.dataBytes) throw badRequest('That design is too large to save.');
   return out;
 }
@@ -35,6 +34,17 @@ export class Studio3dService {
   constructor(private readonly db: Db, private readonly billing: BillingMonitorService) { this.ai = new Studio3dAi(billing); }
 
   status() { return { enabled: studioEnabled(), ai: studioEnabled() && this.ai.configured() }; }
+
+  schema() { this.on(); return buildingModelJsonSchema(); }
+
+  // Full check of a model without saving it: parse errors, or every finding (errors and warnings).
+  validate(body: any) {
+    this.on();
+    const { model, error } = BuildingModel.tryParse(body?.model);
+    if (!model) return { ok: false, issues: error!.issues.slice(0, 50), findings: [] };
+    const findings = validateBuilding(model);
+    return { ok: !errorsOnly(findings).length, issues: [], findings };
+  }
   private on() { if (!studioEnabled()) throw new ApiError(503, 'The 3D Design Studio isn’t switched on for this site yet.', { code: 'NOT_CONFIGURED' }); }
 
   private async project(user: AuthUser, id: string) {
