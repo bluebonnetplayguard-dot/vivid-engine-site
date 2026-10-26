@@ -98,3 +98,44 @@ the studio's history, reported back through the status hooks.
 
 The 3D Studio's `/api/studio3d/interpret` now runs this interpreter and converts to the studio's flat format; the old
 studio-only AI call was removed (one AI integration, not two).
+
+## Router (`POST /api/ai/execute`)
+
+Runs (or previews) validated commands. The browser sends the plan it got from the assistant; the server never trusts
+it and validates every command again — shape, then against the **saved** design.
+
+```json
+{ "projectId": "…", "designId": "…", "mode": "apply", "baseVersion": 3, "logId": "…", "message": "black metal roof",
+  "selection": "o-f1-front-2", "company": { "name": "…" },
+  "commands": [{ "command": { "type": "UPDATE_MATERIAL", "payload": { … } }, "confirmed": false }] }
+```
+
+| Command | Goes to | Result status |
+|---|---|---|
+| UPDATE_MATERIAL, UPDATE_COLOR, MOVE_OBJECT, RESIZE_OBJECT, ADD_COMPONENT, REMOVE_COMPONENT | the studio's own command code (`site/…/core/commands.js`, loaded on the server) | `applied` / `previewed` |
+| RESTORE_DESIGN | saved version → current model | `applied` (only when confirmed) |
+| SELECT_OBJECT, CHANGE_CAMERA, SET_VIEW, TOGGLE_LAYER, SET_LIGHTING, GENERATE_RENDER, LOAD_MODEL | the 3D view in the browser | `client` (with `studioCommand` / `designId`) |
+| CREATE_DESIGN_VARIATION | new design in the project | `done` (`designId`) |
+| SAVE_DESIGN | — (edits are already saved) | `done` |
+| CALCULATE_MATERIALS | takeoff job | `queued` / `done` (`progressUrl`, `resultUrl`) |
+| GENERATE_ESTIMATE | estimating engine (alternates by design name) | `done` (`estimateVersion`, `price`) |
+| PRODUCE_PROPOSAL | proposal generator (latest estimate; company from the request or the last proposal) | `done` or `needs-input` |
+
+Rules:
+
+- **Confirmation.** A command whose validation says it needs confirmation (all geometry, restore, bulk edits) returns
+  `needs-confirmation` unless it is sent with `confirmed: true`. Send the same command back confirmed to run it.
+- **One version.** All model edits in a request are applied in order and saved as one new design version with the
+  note `AI: …`. Takeoffs, estimates and proposals in the same request run after that save, so they price the edited
+  design.
+- **Conflicts.** `baseVersion` that isn't the saved version → `409 VERSION_CONFLICT`. Nothing runs.
+- **Preview mode** applies nothing and saves nothing; compute commands report what they would do.
+- **Failures are per step.** A failed engine marks only its own result `failed`; the rest still run.
+- **Log.** With `logId`, the command log moves to `executed` or `partially-executed` (or `rejected` when nothing could
+  run). A plan that is only waiting for confirmation stays `proposed`; `partially-executed → executed` is allowed
+  when the rest is confirmed later.
+- At most 25 commands per request; 30 requests a minute.
+
+The server loads the studio core with a native `import()` from, in order: `STUDIO_CORE_DIR`, `/app/studio-core`
+(copied into the Docker image with a `{"type":"module"}` package.json), then the repo's `site/` folder. There is
+one copy of the command code, so the browser preview and the saved result can't drift apart.

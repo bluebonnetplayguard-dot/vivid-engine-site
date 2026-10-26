@@ -12,9 +12,10 @@ const ID_RE = /^[a-f0-9]{24}$/;
 const STATUS = ['executed', 'partially-executed', 'rejected', 'undone', 'redone'] as const;
 type Status = (typeof STATUS)[number] | 'proposed';
 // Allowed transitions for the audit trail (undo/redo hooks).
+// partially-executed → executed: the rest of the plan was confirmed and applied later.
 const NEXT: Record<Status, Status[]> = {
   proposed: ['executed', 'partially-executed', 'rejected'],
-  executed: ['undone'], 'partially-executed': ['undone'], undone: ['redone'], redone: ['undone'], rejected: [],
+  executed: ['undone'], 'partially-executed': ['executed', 'undone'], undone: ['redone'], redone: ['undone'], rejected: [],
 };
 
 export interface AssistantRequest {

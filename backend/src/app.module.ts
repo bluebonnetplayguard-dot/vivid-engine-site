@@ -48,6 +48,7 @@ import { ProposalController } from './proposal/proposal.controller';
 import { ProposalService } from './proposal/proposal.service';
 import { AssistantController } from './ai-commands/assistant.controller';
 import { InterpreterService } from './ai-commands/interpreter.service';
+import { CommandRouterService } from './ai-commands/router/command-router.service';
 
 @Module({
   imports: [
@@ -59,7 +60,7 @@ import { InterpreterService } from './ai-commands/interpreter.service';
     Db, Mail, RateLimiter, Realtime, Notifier, AuthService, EntitiesService,
     PaymentsService, AiService, Billing, PortalService, OpsService, PublicClients, MarketResearch, PricingService,
     HistoryService, BillingMonitorService, AiRouterService, AiSearchService, AiSearchBilling,
-    VideoService, VideoAi, VideoBilling, Studio3dService, TakeoffService, EstimatingService, ProposalService, InterpreterService,
+    VideoService, VideoAi, VideoBilling, Studio3dService, TakeoffService, EstimatingService, ProposalService, InterpreterService, CommandRouterService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: JsonErrorFilter },
