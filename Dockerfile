@@ -29,6 +29,9 @@ COPY --from=api /api/node_modules ./node_modules
 COPY --from=api /api/dist ./dist
 COPY --from=api /api/package.json ./package.json
 COPY --from=site /site/dist ./public
+# The 3D Studio's command code (plain ES modules), so the API applies studio commands with the same code as the browser.
+COPY site/src/modules/gc-3d-design-studio/core ./studio-core
+RUN echo '{"type":"module"}' > ./studio-core/package.json
 USER node
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
