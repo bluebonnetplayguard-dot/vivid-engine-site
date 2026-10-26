@@ -98,6 +98,12 @@ const schema = z.object({
   GEOMETRY_SERVICE_URL: z.string().optional(),
   BUILD_STUDIO_MODEL: z.string().default('claude-sonnet-5-5'),
 
+  // GC 3D Design Studio (/studio). Feature flag: on by default outside production; set STUDIO3D_ENABLED=true
+  // on staging/production to switch it on there. The AI command interpreter uses ANTHROPIC_API_KEY and this model.
+  STUDIO3D_ENABLED: z.enum(['true', 'false']).optional(),
+  STUDIO3D_MODEL: z.string().default('claude-sonnet-5-5'),
+  STUDIO3D_AI_PER_DAY: z.coerce.number().int().default(200),
+
   // Saved conversation history is encrypted at rest with this key (32 random bytes, base64: openssl rand -base64 32).
   // Without it, production keeps history switched off rather than storing it unencrypted.
   // To rotate: put the new key here and move the old one to HISTORY_ENCRYPTION_KEY_PREVIOUS (comma list).

@@ -9,7 +9,7 @@ export default function Layout() {
   const hasPrivateShell = pathname === '/settings' || /^\/(portal|admin)(\/|$)/.test(pathname);
   // AI Search has its own assistant and a bottom search box the chat bubble would cover.
   const isAiSearch = /^\/ai-search(\/|$)/.test(pathname);
-  // The video editor fills the screen; the chat bubble would cover its controls.
-  const isEditor = pathname.startsWith('/video/edit/');
+  // The video editor and the 3D Design Studio fill the screen; the chat bubble would cover their controls.
+  const isEditor = pathname.startsWith('/video/edit/') || pathname === '/studio';
   return <NavigationMotionProvider>{hasPrivateShell || isEditor ? outlet : <PageTransition>{outlet}</PageTransition>}{!isAiSearch && !isEditor && <MarketingChatWidget />}</NavigationMotionProvider>;
 }
