@@ -1,4 +1,7 @@
-# Continuous deployment of the GC platform to https://gc3d.cloud (DigitalOcean Droplet). Runbook: docs/GC3D-DEPLOY.md
+# Continuous deployment of the GC platform to https://gc3d.cloud. Runbook: docs/GC3D-DEPLOY.md
+# gc3d.cloud runs on the same Droplet as vividenginesolutions.com, as its own Docker project ("gc3d": app + database)
+# behind the live site's Nginx. This workflow can only reach gc3d: its SSH key is locked to a forced command
+# (infra/gc3d/gc3d-ssh-gate.sh) that accepts deploy, rollback and status for gc3d.cloud and nothing else.
 #
 #   push to the deploy branch ──► CI (same jobs as every PR) ──► build image ──► deploy ──► verify ──► (rollback)
 #
@@ -7,9 +10,10 @@
 # Manual runs (Actions tab > Deploy gc3d.cloud > Run workflow, once this file is on the default branch) can deploy any
 # ref or roll back to the previous release.
 #
-# Nothing secret is stored in the image or the repository. GitHub holds only the Droplet's SSH deploy key and its host
-# key (environment "gc3d-staging"). The server pulls the image with this run's short-lived GITHUB_TOKEN, logs out
-# afterwards, and keeps its own settings in /opt/vivid/infra/.env.
+# Nothing secret is stored in the image or the repository. GitHub holds only the restricted SSH key and the server's
+# host key (environment "gc3d-staging"). The server pulls the image with this run's short-lived GITHUB_TOKEN, passed on
+# stdin into a throwaway Docker config that is deleted after the pull, and keeps its own settings in
+# /var/lib/gc3d/gc3d.env.
 name: Deploy gc3d.cloud
 
 on:
@@ -48,7 +52,7 @@ jobs:
           BRANCH: ${{ vars.GC3D_DEPLOY_BRANCH }}
           ACTION: ${{ inputs.action || 'deploy' }}
         run: |
-          # The repository variable GC3D_DEPLOY_BRANCH is set in the last setup step (docs/GC3D-DEPLOY.md step 6).
+          # The repository variable GC3D_DEPLOY_BRANCH is set in the GitHub setup step (docs/GC3D-DEPLOY.md step 3).
           # Until then pushes are no-ops instead of failing runs.
           if [ -z "$BRANCH" ]; then
             echo "::notice::Deployment not set up yet (repository variable GC3D_DEPLOY_BRANCH is empty); skipping."
@@ -127,7 +131,7 @@ jobs:
       deployed: ${{ steps.deploy.outputs.deployed }}
     env:
       HOST: ${{ vars.GC3D_HOST }}
-      SSH_USER: ${{ vars.GC3D_SSH_USER || 'deploy' }}
+      SSH_USER: ${{ vars.GC3D_SSH_USER || 'gc3d-deploy' }}
     steps:
       - name: Server configured?
         id: ready
@@ -136,7 +140,7 @@ jobs:
           KNOWN: ${{ secrets.GC3D_KNOWN_HOSTS }}
         run: |
           if [ -z "$HOST" ] || [ -z "$KEY" ] || [ -z "$KNOWN" ]; then
-            echo "::error::Environment gc3d-staging needs variable GC3D_HOST and secrets GC3D_SSH_KEY and GC3D_KNOWN_HOSTS (docs/GC3D-DEPLOY.md, step 6)."
+            echo "::error::Environment gc3d-staging needs variable GC3D_HOST and secrets GC3D_SSH_KEY and GC3D_KNOWN_HOSTS (docs/GC3D-DEPLOY.md, step 3)."
             exit 1
           fi
       - name: SSH setup (pinned host key, no trust-on-first-use)
@@ -161,27 +165,20 @@ jobs:
             ControlPath ~/.ssh/cm-%r@%h:%p
             ControlPersist 300
           EOF
-          ssh gc3d 'echo "connected to $(hostname) as $(whoami)"'
-      - name: Registry login on the server (token valid for this run only)
-        run: printf '%s' "$TOKEN" | ssh gc3d "docker login ghcr.io -u '${{ github.actor }}' --password-stdin" >/dev/null
-        env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ssh gc3d status
       - name: Deploy (backup, switch, health check, automatic rollback on failure)
         id: deploy
         env:
           REF: ${{ needs.image.outputs.ref }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
         run: |
-          # Run the deploy script from the commit being deployed (not whatever version is checked out on the server).
-          ssh gc3d "set -e; git -C /opt/vivid fetch --quiet origin; f=\$(mktemp /tmp/remote-deploy.XXXXXX.sh);
-                    git -C /opt/vivid show ${GITHUB_SHA}:infra/scripts/remote-deploy.sh > \$f;
-                    REMOTE_DEPLOY_COPY=\$f bash \$f deploy ${GITHUB_SHA} '${REF}'"
+          # The forced command on the server accepts exactly: deploy <sha> <image> <user>; the token arrives on stdin.
+          printf '%s\n' "$TOKEN" | ssh gc3d "deploy ${GITHUB_SHA} ${REF} ${ACTOR}"
           echo "deployed=true" >> "$GITHUB_OUTPUT"
-      - name: Registry logout on the server
+      - name: Release status
         if: always()
-        run: ssh gc3d 'docker logout ghcr.io >/dev/null 2>&1 || true' || true
-      - name: Release history
-        if: always()
-        run: ssh gc3d 'bash /opt/vivid/infra/scripts/remote-deploy.sh status; tail -n 5 /opt/vivid/releases/history.log 2>/dev/null' || true
+        run: ssh gc3d status || true
 
   verify:
     name: Verify from the internet
@@ -197,12 +194,11 @@ jobs:
         name: verify-deploy.sh (DNS, TLS, health, redirects, headers, pages)
         env:
           EXPECT_IP: ${{ vars.GC3D_IPV4 }}
-          EXPECT_IP6: ${{ vars.GC3D_IPV6 }}
           EXPECT_NOINDEX: '1'
           EXPECT_HOME: /studio
         run: |
           set +e
-          bash infra/scripts/verify-deploy.sh "$DOMAIN"; rc=$?
+          bash infra/gc3d/verify-deploy.sh "$DOMAIN"; rc=$?
           echo "result=$rc" >> "$GITHUB_OUTPUT"
           # 3 = only DNS/TLS checks failed: report, but don't roll back a healthy release for it.
           [ "$rc" = 0 ] || [ "$rc" = 3 ] || exit 1
@@ -223,7 +219,7 @@ jobs:
       url: https://gc3d.cloud/studio
     env:
       HOST: ${{ vars.GC3D_HOST }}
-      SSH_USER: ${{ vars.GC3D_SSH_USER || 'deploy' }}
+      SSH_USER: ${{ vars.GC3D_SSH_USER || 'gc3d-deploy' }}
     steps:
       - uses: actions/checkout@v4
       - name: SSH setup
@@ -235,19 +231,15 @@ jobs:
           printf '%s\n' "$KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
           printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
           printf 'Host gc3d\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n  ControlMaster auto\n  ControlPath ~/.ssh/cm-%%r@%%h:%%p\n  ControlPersist 300\n' "$HOST" "$SSH_USER" > ~/.ssh/config
-      - name: Registry login on the server
-        run: printf '%s' "$TOKEN" | ssh gc3d "docker login ghcr.io -u '${{ github.actor }}' --password-stdin" >/dev/null
+      - name: gc3d-deploy rollback
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: remote-deploy.sh rollback
-        run: ssh gc3d 'bash /opt/vivid/infra/scripts/remote-deploy.sh rollback'
-      - name: Registry logout on the server
-        if: always()
-        run: ssh gc3d 'docker logout ghcr.io >/dev/null 2>&1 || true' || true
+          ACTOR: ${{ github.actor }}
+        run: printf '%s\n' "$TOKEN" | ssh gc3d "rollback ${ACTOR}"
       - name: Verify the rolled-back release
         run: |
           command -v dig >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils)
-          EXPECT_NOINDEX=1 EXPECT_HOME=/studio bash infra/scripts/verify-deploy.sh "$DOMAIN" || [ $? = 3 ]
+          EXPECT_NOINDEX=1 EXPECT_HOME=/studio bash infra/gc3d/verify-deploy.sh "$DOMAIN" || [ $? = 3 ]
       - name: Fail the run so the bad release is visible
         if: needs.gate.outputs.rollback != 'true'
         run: |
