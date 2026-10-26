@@ -10,6 +10,8 @@ export class Studio3dController {
   constructor(private readonly studio: Studio3dService) {}
 
   @Get('status') status() { return this.studio.status(); }
+  @Get('schema') schema() { return this.studio.schema(); }
+  @Post('validate') @HttpCode(200) validate(@Body() body: any) { return this.studio.validate(body); }
 
   @Get('projects') projects(@CurrentUser() user: AuthUser) { return this.studio.listProjects(user); }
   @Post('projects') @HttpCode(200) createProject(@CurrentUser() user: AuthUser, @Body() body: any) { return this.studio.createProject(user, body); }
