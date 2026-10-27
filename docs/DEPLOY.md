@@ -3,6 +3,9 @@
 Two supported options. The **Droplet** is what you have and is recommended; App Platform is the managed alternative.
 Neither requires GitHub.
 
+**gc3d.cloud** (the GC platform staging site) runs on this same Droplet as a separate Docker project behind this Nginx,
+with a GitHub Actions pipeline: see [GC3D-DEPLOY.md](GC3D-DEPLOY.md).
+
 ## Requirements
 
 | | Droplet (recommended) | App Platform |

@@ -1,0 +1,66 @@
+# gc3d.cloud application stack on the shared Droplet (project "gc3d", separate from project "vivid").
+#   gc3d-app  the website + API + 3D Design Studio, from a prebuilt, CI-tested image (never built on this server)
+#   gc3d-db   PostgreSQL 16, its own volume, reachable only from gc3d-app (private network, no published port)
+#
+# The live site's Nginx (project "vivid", container web) reaches gc3d-app over the "vivid_default" network by the
+# name "gc3d-app". Nothing here publishes a port. Memory and CPU are capped so gc3d can never starve
+# vividenginesolutions.com on the shared server.
+#
+# Run only through gc3d-deploy (it passes the env file and project name):
+#   docker compose -p gc3d --env-file /var/lib/gc3d/gc3d.env -f /opt/gc3d/infra/gc3d/compose.yml ...
+name: gc3d
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "20m", max-file: "3" }
+
+services:
+  gc3d-db:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set in /var/lib/gc3d/gc3d.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in /var/lib/gc3d/gc3d.env}
+      POSTGRES_DB: ${POSTGRES_DB:?set in /var/lib/gc3d/gc3d.env}
+    volumes:
+      - gc3d-pgdata:/var/lib/postgresql/data
+    networks: [private]
+    mem_limit: 512m
+    cpus: 1.0
+    shm_size: 128m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+
+  gc3d-app:
+    image: ${APP_IMAGE:?set by gc3d-deploy}
+    restart: unless-stopped
+    logging: *logging
+    env_file: /var/lib/gc3d/gc3d.env
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@gc3d-db:5432/${POSTGRES_DB}
+    depends_on:
+      gc3d-db:
+        condition: service_healthy
+    networks:
+      private: {}
+      edge:
+        aliases: [gc3d-app]
+    mem_limit: 1g
+    cpus: 1.0
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  private: {}
+  # The live site's network, created by /opt/vivid/infra (project "vivid"). Joined, never created or removed here.
+  edge:
+    external: true
+    name: vivid_default
+
+volumes:
+  gc3d-pgdata:

@@ -1,0 +1,247 @@
+# Continuous deployment of the GC platform to https://gc3d.cloud. Runbook: docs/GC3D-DEPLOY.md
+# gc3d.cloud runs on the same Droplet as vividenginesolutions.com, as its own Docker project ("gc3d": app + database)
+# behind the live site's Nginx. This workflow can only reach gc3d: its SSH key is locked to a forced command
+# (infra/gc3d/gc3d-ssh-gate.sh) that accepts deploy, rollback and status for gc3d.cloud and nothing else.
+#
+#   push to the deploy branch ──► CI (same jobs as every PR) ──► build image ──► deploy ──► verify ──► (rollback)
+#
+# The deploy branch is the repository variable GC3D_DEPLOY_BRANCH (staging/gc3d). Pushing there deploys. While the
+# variable is unset (server not set up yet) every run is a no-op.
+# Manual runs (Actions tab > Deploy gc3d.cloud > Run workflow, once this file is on the default branch) can deploy any
+# ref or roll back to the previous release.
+#
+# Nothing secret is stored in the image or the repository. GitHub holds only the restricted SSH key and the server's
+# host key (environment "gc3d-staging"). The server pulls the image with this run's short-lived GITHUB_TOKEN, passed on
+# stdin into a throwaway Docker config that is deleted after the pull, and keeps its own settings in
+# /var/lib/gc3d/gc3d.env.
+name: Deploy gc3d.cloud
+
+on:
+  push:
+    branches: [staging/gc3d, main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: deploy = test, build and deploy the selected branch; rollback = return to the previous release
+        type: choice
+        options: [deploy, rollback]
+        default: deploy
+
+permissions:
+  contents: read
+
+# One deployment at a time; a newer push waits for the running one instead of interrupting it mid-switch.
+concurrency:
+  group: gc3d-deploy
+  cancel-in-progress: false
+
+env:
+  DOMAIN: gc3d.cloud
+  IMAGE: ghcr.io/bluebonnetplayguard-dot/vivid-engine-site
+
+jobs:
+  gate:
+    name: Should this run deploy?
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.g.outputs.deploy }}
+      rollback: ${{ steps.g.outputs.rollback }}
+    steps:
+      - id: g
+        env:
+          BRANCH: ${{ vars.GC3D_DEPLOY_BRANCH }}
+          ACTION: ${{ inputs.action || 'deploy' }}
+        run: |
+          # The repository variable GC3D_DEPLOY_BRANCH is set in the GitHub setup step (docs/GC3D-DEPLOY.md step 3).
+          # Until then pushes are no-ops instead of failing runs.
+          if [ -z "$BRANCH" ]; then
+            echo "::notice::Deployment not set up yet (repository variable GC3D_DEPLOY_BRANCH is empty); skipping."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"; echo "rollback=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "$ACTION" = rollback ]; then echo "rollback=true" >> "$GITHUB_OUTPUT"; echo "deploy=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "${GITHUB_REF_NAME}" = "$BRANCH" ] || [ "${GITHUB_EVENT_NAME}" = workflow_dispatch ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::${GITHUB_REF_NAME} is not the deploy branch ($BRANCH); nothing to deploy."
+          fi
+          echo "rollback=false" >> "$GITHUB_OUTPUT"
+
+  ci:
+    name: CI
+    needs: gate
+    if: needs.gate.outputs.deploy == 'true'
+    uses: ./.github/workflows/ci.yml
+
+  image:
+    name: Build and push image
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      ref: ${{ steps.ref.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha,format=long,prefix=sha-
+            type=raw,value=gc3d-staging
+          labels: |
+            org.opencontainers.image.title=vivid-engine-site
+            org.opencontainers.image.description=Vivid Engine / GC 3D Design Studio (site + API)
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=gc3d
+          cache-to: type=gha,mode=max,scope=gc3d
+          provenance: false
+      # Deploy by digest, so the server runs exactly the bytes that were built and tested here.
+      - id: ref
+        run: echo "ref=${IMAGE}:sha-${GITHUB_SHA}@${DIGEST}" >> "$GITHUB_OUTPUT"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+
+  deploy:
+    name: Deploy to gc3d.cloud
+    needs: [gate, image]
+    if: needs.gate.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    environment:
+      name: gc3d-staging
+      url: https://gc3d.cloud/studio
+    outputs:
+      deployed: ${{ steps.deploy.outputs.deployed }}
+    env:
+      HOST: ${{ vars.GC3D_HOST }}
+      SSH_USER: ${{ vars.GC3D_SSH_USER || 'gc3d-deploy' }}
+    steps:
+      - name: Server configured?
+        id: ready
+        env:
+          KEY: ${{ secrets.GC3D_SSH_KEY }}
+          KNOWN: ${{ secrets.GC3D_KNOWN_HOSTS }}
+        run: |
+          if [ -z "$HOST" ] || [ -z "$KEY" ] || [ -z "$KNOWN" ]; then
+            echo "::error::Environment gc3d-staging needs variable GC3D_HOST and secrets GC3D_SSH_KEY and GC3D_KNOWN_HOSTS (docs/GC3D-DEPLOY.md, step 3)."
+            exit 1
+          fi
+      - name: SSH setup (pinned host key, no trust-on-first-use)
+        env:
+          KEY: ${{ secrets.GC3D_SSH_KEY }}
+          KNOWN: ${{ secrets.GC3D_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host gc3d
+            HostName $HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 15
+            ConnectTimeout 20
+            # One TCP connection for the whole job: the firewall rate-limits new SSH connections (ufw limit).
+            ControlMaster auto
+            ControlPath ~/.ssh/cm-%r@%h:%p
+            ControlPersist 300
+          EOF
+          ssh gc3d status
+      - name: Deploy (backup, switch, health check, automatic rollback on failure)
+        id: deploy
+        env:
+          REF: ${{ needs.image.outputs.ref }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          # The forced command on the server accepts exactly: deploy <sha> <image> <user>; the token arrives on stdin.
+          printf '%s\n' "$TOKEN" | ssh gc3d "deploy ${GITHUB_SHA} ${REF} ${ACTOR}"
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+      - name: Release status
+        if: always()
+        run: ssh gc3d status || true
+
+  verify:
+    name: Verify from the internet
+    needs: deploy
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.v.outputs.result }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: command -v dig >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils)
+      - id: v
+        name: verify-deploy.sh (DNS, TLS, health, redirects, headers, pages)
+        env:
+          EXPECT_IP: ${{ vars.GC3D_IPV4 }}
+          EXPECT_NOINDEX: '1'
+          EXPECT_HOME: /studio
+        run: |
+          set +e
+          bash infra/gc3d/verify-deploy.sh "$DOMAIN"; rc=$?
+          echo "result=$rc" >> "$GITHUB_OUTPUT"
+          # 3 = only DNS/TLS checks failed: report, but don't roll back a healthy release for it.
+          [ "$rc" = 0 ] || [ "$rc" = 3 ] || exit 1
+          [ "$rc" = 3 ] && echo "::warning::Release is healthy, but DNS/TLS checks failed; see the log above."
+          exit 0
+
+  rollback:
+    name: Roll back
+    needs: [gate, deploy, verify]
+    # After a deploy whose external verification failed, or when chosen in a manual run.
+    if: always() && (needs.gate.outputs.rollback == 'true' || (needs.deploy.outputs.deployed == 'true' && needs.verify.result == 'failure'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    environment:
+      name: gc3d-staging
+      url: https://gc3d.cloud/studio
+    env:
+      HOST: ${{ vars.GC3D_HOST }}
+      SSH_USER: ${{ vars.GC3D_SSH_USER || 'gc3d-deploy' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: SSH setup
+        env:
+          KEY: ${{ secrets.GC3D_SSH_KEY }}
+          KNOWN: ${{ secrets.GC3D_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          printf 'Host gc3d\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n  ControlMaster auto\n  ControlPath ~/.ssh/cm-%%r@%%h:%%p\n  ControlPersist 300\n' "$HOST" "$SSH_USER" > ~/.ssh/config
+      - name: gc3d-deploy rollback
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: printf '%s\n' "$TOKEN" | ssh gc3d "rollback ${ACTOR}"
+      - name: Verify the rolled-back release
+        run: |
+          command -v dig >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils)
+          EXPECT_NOINDEX=1 EXPECT_HOME=/studio bash infra/gc3d/verify-deploy.sh "$DOMAIN" || [ $? = 3 ]
+      - name: Fail the run so the bad release is visible
+        if: needs.gate.outputs.rollback != 'true'
+        run: |
+          echo "::error::The new release failed verification on gc3d.cloud and was rolled back to the previous release."
+          exit 1
