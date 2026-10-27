@@ -16,7 +16,9 @@
 #   3. /var/lib/gc3d/gc3d.env: gc3d's own settings with fresh secrets (mode 600; its own database, own JWT keys)
 #   4. HTTPS certificate for gc3d.cloud + www, issued by the live site's certbot over the existing port-80 challenge
 #      path (no downtime). The certbot container already renews every certificate it holds.
-#   5. Nginx: the gc3d server block, mounted through /opt/vivid/infra/docker-compose.override.yml.
+#   5. Nginx: the gc3d server block (plain config, no template variables), mounted read-only straight into the web
+#      container's /etc/nginx/conf.d/gc3d.conf through /opt/vivid/infra/docker-compose.override.yml. (Not into
+#      /etc/nginx/templates: that directory is itself a read-only mount, so Docker can't create a file inside it.)
 #      The full new configuration is tested in a throwaway container first (nginx -t). Only then is "web" recreated
 #      (1–2 s). If vividenginesolutions.com isn't healthy right after, the old configuration is put back automatically.
 #   6. /usr/local/sbin/gc3d-deploy + gc3d-ssh-gate, user "gc3d-deploy" (forced command, one sudo rule), CI key
@@ -79,7 +81,7 @@ nginx_test() {   # full config as the live container would render it, in a throw
   docker run --rm --network vivid_default \
     -e DOMAIN="$(vivid_domain)" \
     -v "$VIVID/nginx/templates:/etc/nginx/templates:ro" \
-    -v "$VIVID/nginx/extra/gc3d.conf.template:/etc/nginx/templates/gc3d.conf.template:ro" \
+    -v "$VIVID/nginx/extra/gc3d.conf:/etc/nginx/conf.d/gc3d.conf:ro" \
     -v vivid_certs:/etc/letsencrypt:ro -v vivid_acme:/var/www/acme:ro \
     --tmpfs /var/log/nginx \
     "$NGINX_IMAGE" nginx -t
@@ -87,20 +89,20 @@ nginx_test() {   # full config as the live container would render it, in a throw
 
 install_nginx() {
   install -d "$VIVID/nginx/extra"
-  local tpl="$VIVID/nginx/extra/gc3d.conf.template" ovr="$VIVID/docker-compose.override.yml"
+  local tpl="$VIVID/nginx/extra/gc3d.conf" ovr="$VIVID/docker-compose.override.yml"
   local had_ovr=0; [ -f "$ovr" ] && had_ovr=1
-  if [ "$had_ovr" = 1 ] && ! grep -q 'gc3d.conf.template' "$ovr"; then
+  if [ "$had_ovr" = 1 ] && ! grep -q 'nginx/extra/gc3d.conf' "$ovr"; then
     die "$ovr already exists with other content. Merge the gc3d volume line by hand (see docs/GC3D-DEPLOY.md), then re-run."
   fi
   cp -p "$tpl" "$tpl.bak" 2>/dev/null || true
   [ "$had_ovr" = 1 ] && cp -p "$ovr" "$ovr.bak"
-  install -m 0644 "$SRC/infra/gc3d/nginx-gc3d.conf.template" "$tpl"
+  install -m 0644 "$SRC/infra/gc3d/nginx-gc3d.conf" "$tpl"
   cat > "$ovr" <<'EOF'
 # Added by infra/gc3d/gc3d-setup.sh: serves gc3d.cloud from the same Nginx. Remove with: gc3d-setup.sh uninstall
 services:
   web:
     volumes:
-      - ./nginx/extra/gc3d.conf.template:/etc/nginx/templates/gc3d.conf.template:ro
+      - ./nginx/extra/gc3d.conf:/etc/nginx/conf.d/gc3d.conf:ro
 EOF
   if ! out="$(nginx_test 2>&1)"; then
     echo "$out" | tail -n 20
@@ -112,7 +114,7 @@ EOF
   vivid config --quiet || die "compose config with the override is invalid (nothing restarted)"
   # Re-run with an unchanged block: the running web container already has it, so don't restart anything.
   local web; web="$(vivid ps -q web 2>/dev/null || true)"
-  if [ -n "$web" ] && docker inspect -f '{{range .Mounts}}{{.Destination}} {{end}}' "$web" | grep -q gc3d.conf.template \
+  if [ -n "$web" ] && docker inspect -f '{{range .Mounts}}{{.Destination}} {{end}}' "$web" | grep -q /etc/nginx/conf.d/gc3d.conf \
      && cmp -s "$tpl" "$tpl.bak" 2>/dev/null; then
     ok "web already serves this gc3d block"; rm -f "$tpl.bak" "$ovr.bak"; return
   fi
@@ -257,8 +259,8 @@ EOF
 
   uninstall)
     say "Removing gc3d.cloud from Nginx and stopping its containers (database volume and backups are kept)"
-    rm -f "$VIVID/nginx/extra/gc3d.conf.template"
-    if [ -f "$VIVID/docker-compose.override.yml" ] && grep -q 'gc3d.conf.template' "$VIVID/docker-compose.override.yml"; then
+    rm -f "$VIVID/nginx/extra/gc3d.conf" "$VIVID/nginx/extra/gc3d.conf.template"
+    if [ -f "$VIVID/docker-compose.override.yml" ] && grep -q 'nginx/extra/gc3d.conf' "$VIVID/docker-compose.override.yml"; then
       rm -f "$VIVID/docker-compose.override.yml"
     fi
     vivid up -d --no-deps --force-recreate web

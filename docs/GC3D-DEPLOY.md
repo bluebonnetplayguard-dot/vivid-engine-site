@@ -22,7 +22,7 @@ response says `X-Robots-Tag: noindex, nofollow`, and `/` opens `/studio`.
 | Changed | Not touched |
 |---|---|
 | New file `/opt/vivid/infra/docker-compose.override.yml` (one volume line for `web`) | The live app, its database and `/opt/vivid/infra/.env` |
-| New file `/opt/vivid/infra/nginx/extra/gc3d.conf.template` | `/opt/vivid/infra/nginx/templates/default.conf.template` |
+| New file `/opt/vivid/infra/nginx/extra/gc3d.conf` (mounted read-only as `/etc/nginx/conf.d/gc3d.conf`) | `/opt/vivid/infra/nginx/templates/default.conf.template` |
 | The `web` container is recreated once (1–2 s) | The certbot container (it simply renews one more certificate) |
 | New: `/opt/gc3d` (code), `/var/lib/gc3d` (settings, backups, release history) | Firewall, SSH settings for existing users, existing cron jobs |
 | New: user `gc3d-deploy`, `/usr/local/sbin/gc3d-*`, two cron lines, `/etc/logrotate.d/gc3d` | |
